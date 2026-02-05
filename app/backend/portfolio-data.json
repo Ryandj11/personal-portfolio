@@ -1,0 +1,166 @@
+{
+    "personal": {
+        "name": "Ryan Johnson",
+        "title": "Software Engineer",
+        "subtitle": "CS @ SJSU",
+        "location": "San Francisco Bay Area, California",
+        "email": "ryanjohnson1105@gmail.com",
+        "linkedin": "https://linkedin.com/in/ryanjohnson1105",
+        "github": "https://github.com/Ryandj11",
+        "bio": "Ryan Johnson is a passionate software engineer specializing in building exceptional digital experiences. He is currently a third-year Computer Science student at San José State University with experience in full-stack development, iOS development, and AI-powered systems."
+    },
+    "education": {
+        "degree": "Bachelor of Science in Computer Science",
+        "institution": "San José State University",
+        "location": "San Jose, CA",
+        "status": "Third-year student"
+    },
+    "experience": [
+        {
+            "company": "LinkedIn",
+            "role": "Software Engineer Intern",
+            "period": "May 2026 - Aug 2026",
+            "location": "Mountain View, CA",
+            "description": "Incoming Software Engineering Intern for Summer 2026",
+            "skills": [],
+            "url": "https://linkedin.com/careers/engineering"
+        },
+        {
+            "company": "Automatic AI",
+            "role": "Software Engineer Intern",
+            "period": "May 2025 - Aug 2025",
+            "location": "Remote",
+            "description": "Worked on an AI-powered basketball training app, building iOS features and a video and sensor data collection pipeline used to train machine learning models in production",
+            "skills": [
+                "iOS Development",
+                "Swift",
+                "SwiftUI",
+                "Firebase",
+                "watchOS"
+            ],
+            "url": "https://automatic.ai"
+        },
+        {
+            "company": "SJSU Software & Computer Engineering Society",
+            "role": "Software Engineer Intern",
+            "period": "May 2024 - Aug 2024",
+            "location": "San Jose, CA",
+            "description": "Developed and improved the SJSU Software and Engineering Society's club website",
+            "skills": [
+                "React",
+                "JavaScript",
+                "CI/CD",
+                "Git",
+                "GitHub"
+            ],
+            "url": "https://www.sjsu.edu/sjsu-college-of-engineering"
+        }
+    ],
+    "projects": [
+        {
+            "title": "Fusion",
+            "description": "AI-powered platform for project managers to unify their Jira, Github, Slack, and Notion workflows",
+            "technologies": [
+                "Google Gemini MCP",
+                "TypeScript",
+                "Express.js",
+                "API Integrations"
+            ],
+            "demo": "https://devpost.com/software/fusion-8d6ura",
+            "github": ""
+        },
+        {
+            "title": "StudyBuddy",
+            "description": "Your Canvas AI assistant (Best Overall Winner at SCEHacks 2025)",
+            "technologies": [
+                "OpenAI API",
+                "Canvas API",
+                "Node.js",
+                "SMS API",
+                "Cron-Job"
+            ],
+            "demo": "https://devpost.com/software/studybuddy-g1hwqe",
+            "github": ""
+        },
+        {
+            "title": "VIVI",
+            "description": "A visualization tool for neurodivergent users to help them express their imagination",
+            "technologies": [
+                "OpenAI DALL-E 3 & Whisper",
+                "OpenCV",
+                "Mediapipe",
+                "FastAPI",
+                "React"
+            ],
+            "demo": "https://devpost.com/software/vivi-qj6fug",
+            "github": ""
+        }
+    ],
+    "skills": {
+        "languages": [
+            "Python",
+            "Java",
+            "TypeScript",
+            "JavaScript",
+            "C",
+            "C++",
+            "Swift",
+            "SQL",
+            "HTML/CSS"
+        ],
+        "frameworks": [
+            "React",
+            "Next.js",
+            "SwiftUI",
+            "Spring Boot",
+            "Node.js",
+            "Express.js",
+            "FastAPI"
+        ],
+        "databases": [
+            "PostgreSQL",
+            "Firebase",
+            "Supabase",
+            "MongoDB"
+        ],
+        "aiml": [
+            "OpenAI API",
+            "Gemini API",
+            "OpenCV",
+            "MediaPipe"
+        ],
+        "tools": [
+            "Git",
+            "GitHub",
+            "CI/CD"
+        ]
+    },
+    "focus_areas": [
+        "Full Stack Architecture",
+        "Backend Systems",
+        "AI Systems",
+        "iOS Development"
+    ],
+    "interests": [
+        "Spending time with friends and family",
+        "Playing basketball",
+        "Working out",
+        "Playing the guitar",
+        "Building cool projects",
+        "Watching movies and shows"
+    ],
+    "faq": [
+        {
+            "question": "How can I contact Ryan?",
+            "answer": "You can reach Ryan via email at ryanjohnson1105@gmail.com or connect with him on LinkedIn at linkedin.com/in/ryanjohnson1105"
+        },
+        {
+            "question": "What technologies does Ryan use?",
+            "answer": "Ryan specializes in the modern React ecosystem. His primary stack includes languages like Python, Java, TypeScript, JavaScript, C, C++, Swift, and SQL. He works with frameworks such as React, Next.js, SwiftUI, Spring Boot, Node.js, Express.js, and FastAPI. For databases, he uses PostgreSQL, Firebase, Supabase, and MongoDB. He also has experience with AI/ML tools including OpenAI API, Gemini API, OpenCV, and MediaPipe."
+        },
+        {
+            "question": "What does Ryan do for fun?",
+            "answer": "Ryan enjoys spending time with his friends and family, playing basketball, working out, playing the guitar, building cool projects, and watching movies/shows."
+        }
+    ]
+}
