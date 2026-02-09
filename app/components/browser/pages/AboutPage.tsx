@@ -189,7 +189,7 @@ export function AboutPage({ onNavigate, theme, onThemeChange }: AboutPageProps) 
           <FAQItem
             question="What does Ryan do for fun?"
             colors={colors}
-            answer="Ryan enjoys spending time with his friends and family, playing basketball, working out, playing the guitar, and building cool projects, and watching movies/shows."
+            answer="Ryan enjoys spending time with his friends and family, playing basketball, working out, playing the guitar, building cool projects, and watching movies/shows."
           />
           {/*
           <FAQItem

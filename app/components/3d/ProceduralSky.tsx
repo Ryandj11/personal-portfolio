@@ -22,20 +22,21 @@ function lerpColor(color1: string, color2: string, t: number): THREE.Color {
 
 // Get interpolated sky colors based on exact hour (smooth transitions)
 export function getSkyColors(hour: number) {
-  // Key times and their colors
+  // Key times and their colors (blue-dominant sky, golden-amber accents near horizon during sunset/sunrise)
   const timePoints = [
-    { hour: 0, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15 },   // Midnight
-    { hour: 5, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15 },   // Late night
-    { hour: 6, top: "#4a6fa5", middle: "#ff9966", bottom: "#ffcc99", ambient: 0.4 },    // Dawn
-    { hour: 7, top: "#6ba3d6", middle: "#ffc299", bottom: "#ffe4c4", ambient: 0.6 },    // Early morning
-    { hour: 10, top: "#87CEEB", middle: "#a8d4e8", bottom: "#c8e6f0", ambient: 0.9 },   // Mid-morning
-    { hour: 12, top: "#87CEEB", middle: "#87CEEB", bottom: "#b8dff5", ambient: 1.0 },   // Noon - light blue
-    { hour: 14, top: "#87CEEB", middle: "#87CEEB", bottom: "#b8dff5", ambient: 1.0 },   // Afternoon
-    { hour: 17, top: "#6ba3d6", middle: "#ffb366", bottom: "#ffd699", ambient: 0.7 },   // Late afternoon
-    { hour: 18, top: "#4a6fa5", middle: "#ff7e5f", bottom: "#feb47b", ambient: 0.5 },   // Sunset
-    { hour: 19, top: "#2d4a6f", middle: "#ff6b4a", bottom: "#ff9966", ambient: 0.35 },  // Dusk
-    { hour: 20, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15 },  // Night
-    { hour: 24, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15 },  // Midnight
+    { hour: 0,    top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },    // Midnight
+    { hour: 5,    top: "#0a1628", middle: "#162442", bottom: "#1e3050", ambient: 0.15, sunsetColor: "#c89060", sunsetIntensity: 0.08 },   // Late night (faint warm hint)
+    { hour: 6,    top: "#4a6fa5", middle: "#8aa8c8", bottom: "#d4b088", ambient: 0.4,  sunsetColor: "#d4a060", sunsetIntensity: 0.5 },    // Dawn - blue sky, golden horizon
+    { hour: 7,    top: "#6ba3d6", middle: "#a0c0d8", bottom: "#d8c8a8", ambient: 0.6,  sunsetColor: "#d8b878", sunsetIntensity: 0.2 },    // Early morning - warming up
+    { hour: 10,   top: "#87CEEB", middle: "#a8d4e8", bottom: "#c8e6f0", ambient: 0.9,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },    // Mid-morning
+    { hour: 12,   top: "#87CEEB", middle: "#87CEEB", bottom: "#b8dff5", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },    // Noon
+    { hour: 14,   top: "#87CEEB", middle: "#87CEEB", bottom: "#b8dff5", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },    // Afternoon
+    { hour: 17,   top: "#5a90c0", middle: "#88a8c0", bottom: "#d0b890", ambient: 0.7,  sunsetColor: "#d0a060", sunsetIntensity: 0.25 },   // Late afternoon - blue with warm horizon
+    { hour: 18,   top: "#4070a8", middle: "#6890b0", bottom: "#c8a070", ambient: 0.5,  sunsetColor: "#d89050", sunsetIntensity: 0.55 },   // Sunset - deeper blue, golden-amber streaks
+    { hour: 19,   top: "#283c6a", middle: "#3c5880", bottom: "#687888", ambient: 0.35, sunsetColor: "#a08060", sunsetIntensity: 0.25 },   // Dusk - dark blue, fading warm glow
+    { hour: 19.5, top: "#162850", middle: "#1e3458", bottom: "#2a3c5a", ambient: 0.22, sunsetColor: "#3a4868", sunsetIntensity: 0.05 },   // Late dusk - deep blue
+    { hour: 20,   top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },    // Night
+    { hour: 24,   top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },    // Midnight
   ];
 
   // Find the two time points to interpolate between
@@ -58,6 +59,8 @@ export function getSkyColors(hour: number) {
     middle: lerpColor(prevPoint.middle, nextPoint.middle, t),
     bottom: lerpColor(prevPoint.bottom, nextPoint.bottom, t),
     ambient: prevPoint.ambient + (nextPoint.ambient - prevPoint.ambient) * t,
+    sunsetColor: lerpColor(prevPoint.sunsetColor, nextPoint.sunsetColor, t),
+    sunsetIntensity: prevPoint.sunsetIntensity + (nextPoint.sunsetIntensity - prevPoint.sunsetIntensity) * t,
   };
 }
 
@@ -114,17 +117,17 @@ function getSunPosition(hour: number): [number, number, number] {
   return [x, y, z];
 }
 
-// Moon position - always visible in window at night
+// Moon position - rises during dusk, visible all night
 function getMoonPosition(hour: number): [number, number, number] {
-  // Moon visible from 8pm to 6am
-  if (hour >= 6 && hour < 20) return [0, -100, 150]; // Below horizon
+  // Moon visible from 7pm (dusk) to 6am
+  if (hour >= 6 && hour < 19) return [0, -100, 150]; // Below horizon
   
-  // Progress from 8pm (0) to 6am (1)
+  // Progress from 7pm (0) to 6am (1)
   let progress: number;
-  if (hour >= 20) {
-    progress = (hour - 20) / 10; // 8pm-midnight: 0-0.4
+  if (hour >= 19) {
+    progress = (hour - 19) / 11; // 7pm-midnight: 0-0.45
   } else {
-    progress = (hour + 4) / 10; // midnight-6am: 0.4-1.0
+    progress = (hour + 5) / 11; // midnight-6am: 0.45-1.0
   }
   
   const angle = progress * Math.PI;
@@ -261,17 +264,17 @@ function Stars({ hour }: { hour: number }) {
 function Sun({ position, hour }: { position: [number, number, number]; hour: number }) {
   const timeOfDay = getTimeOfDay(hour);
   
-  // Sun color changes through day
+  // Sun color changes through day (golden-amber tones at sunset)
   const sunColor = useMemo(() => {
-    if (hour < 7) return "#ff6b35"; // Dawn orange
-    if (hour < 8) return lerpColor("#ff6b35", "#FFD700", hour - 7).getStyle();
-    if (hour >= 18) return lerpColor("#FFD700", "#ff4500", (hour - 18) / 2).getStyle();
+    if (hour < 7) return "#e8a050"; // Dawn golden
+    if (hour < 8) return lerpColor("#e8a050", "#FFD700", hour - 7).getStyle();
+    if (hour >= 18) return lerpColor("#FFD700", "#e08040", (hour - 18) / 2).getStyle(); // Gold to deep amber
     return "#FFD700"; // Midday gold
   }, [hour]);
   
   const glowColor = useMemo(() => {
-    if (hour < 8) return "#ff9966";
-    if (hour >= 17) return "#ff7e5f";
+    if (hour < 8) return "#e8b878";
+    if (hour >= 17) return "#e0a060"; // Warm amber glow at sunset
     return "#FFA500";
   }, [hour]);
   
@@ -308,11 +311,11 @@ function Sun({ position, hour }: { position: [number, number, number]; hour: num
 
 // Moon component
 function Moon({ position, hour }: { position: [number, number, number]; hour: number }) {
-  // Moon visibility
+  // Moon visibility - starts fading in during dusk (hour 19)
   const visibility = useMemo(() => {
-    if (hour >= 6 && hour < 20) return 0;
+    if (hour >= 6 && hour < 19) return 0;
     if (hour >= 5 && hour < 6) return 6 - hour;
-    if (hour >= 20 && hour < 21) return hour - 20;
+    if (hour >= 19 && hour < 20.5) return (hour - 19) / 1.5; // Gradual fade-in over 1.5 hours
     return 1;
   }, [hour]);
   
@@ -364,13 +367,15 @@ export function ArtisticSky() {
     return () => clearInterval(interval);
   }, []);
   
-  // Create gradient sky material with interpolated colors
+  // Create gradient sky material with interpolated colors and sunset streaks
   const skyMaterial = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
         topColor: { value: skyColors.top },
         middleColor: { value: skyColors.middle },
         bottomColor: { value: skyColors.bottom },
+        sunsetColor: { value: skyColors.sunsetColor },
+        sunsetIntensity: { value: skyColors.sunsetIntensity },
       },
       vertexShader: `
         varying vec3 vWorldPosition;
@@ -384,11 +389,44 @@ export function ArtisticSky() {
         uniform vec3 topColor;
         uniform vec3 middleColor;
         uniform vec3 bottomColor;
+        uniform vec3 sunsetColor;
+        uniform float sunsetIntensity;
         varying vec3 vWorldPosition;
-        
+
+        // Hash function for noise
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+
+        // Smooth value noise
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // Fractal Brownian Motion
+        float fbm(vec2 p) {
+          float value = 0.0;
+          float amplitude = 0.5;
+          float frequency = 1.0;
+          for (int i = 0; i < 4; i++) {
+            value += amplitude * noise(p * frequency);
+            amplitude *= 0.5;
+            frequency *= 2.0;
+          }
+          return value;
+        }
+
         void main() {
           float height = normalize(vWorldPosition).y;
-          
+
+          // Base sky gradient (unchanged)
           vec3 color;
           if (height < 0.0) {
             color = bottomColor;
@@ -397,7 +435,29 @@ export function ArtisticSky() {
           } else {
             color = mix(middleColor, topColor, (height - 0.4) / 0.6);
           }
-          
+
+          // --- Sunset/sunrise streaks ---
+          if (sunsetIntensity > 0.0) {
+            // Horizontally-stretched noise for wide streak shapes
+            vec2 streakUV = vec2(vWorldPosition.x * 0.003, vWorldPosition.y * 0.025);
+            float streaks = fbm(streakUV * 3.0);
+            streaks = smoothstep(0.3, 0.7, streaks);
+
+            // Secondary finer streaks at a different scale for wispy detail
+            vec2 fineUV = vec2(vWorldPosition.x * 0.006, vWorldPosition.y * 0.04);
+            float fineStreaks = fbm(fineUV * 5.0 + vec2(42.0, 17.0));
+            fineStreaks = smoothstep(0.35, 0.65, fineStreaks);
+
+            // Combine broad and fine streaks
+            float combinedStreaks = mix(streaks, fineStreaks, 0.4);
+
+            // Height mask: confine streaks to lower sky near horizon (realistic)
+            float heightMask = smoothstep(-0.1, 0.05, height) * smoothstep(0.45, 0.15, height);
+
+            // Blend sunset streaks into base color
+            color = mix(color, sunsetColor, combinedStreaks * sunsetIntensity * heightMask);
+          }
+
           gl_FragColor = vec4(color, 1.0);
         }
       `,
