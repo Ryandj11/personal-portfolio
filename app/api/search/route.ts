@@ -10,6 +10,14 @@ import portfolioData from '../../backend/portfolio-data.json';
 const CACHE_TTL = 86400; // 24 hour in seconds
 const CACHE_PREFIX = 'search:';
 
+// Allowed origins for request validation
+const ALLOWED_ORIGINS = [
+    process.env.NEXT_PUBLIC_SITE_URL,           // Custom domain if set
+    `https://${process.env.VERCEL_URL}`,         // Vercel preview/production URL
+    'http://localhost:3000',                      // Local development
+    'http://localhost:3001',
+].filter(Boolean) as string[];
+
 // ============================================
 // INITIALIZE CLIENTS
 // ============================================
@@ -123,7 +131,17 @@ EDUCATION:
         context += `
 
 EXPERIENCE:
-${data.experience.map(exp => `- ${exp.role} at ${exp.company} (${exp.period}): ${exp.description}`).join('\n')}`;
+${data.experience.map((exp: any) => {
+    let entry = `${exp.role} at ${exp.company} (${exp.period})\n  ${exp.description}`;
+    if (exp.highlights?.length) {
+        entry += '\n  Key contributions:';
+        exp.highlights.forEach((h: string) => { entry += `\n  • ${h}`; });
+    }
+    if (exp.skills?.length) {
+        entry += `\n  Tech: ${exp.skills.join(', ')}`;
+    }
+    return entry;
+}).join('\n\n')}`;
     }
 
     // Add projects if relevant
@@ -131,7 +149,15 @@ ${data.experience.map(exp => `- ${exp.role} at ${exp.company} (${exp.period}): $
         context += `
 
 PROJECTS:
-${data.projects.map(proj => `- ${proj.title}: ${proj.description} [${proj.technologies.slice(0, 3).join(', ')}]`).join('\n')}`;
+${data.projects.map((proj: any) => {
+    let entry = `${proj.title}: ${proj.description}`;
+    if (proj.award) entry += ` (${proj.award})`;
+    if (proj.highlights?.length) {
+        proj.highlights.forEach((h: string) => { entry += `\n  • ${h}`; });
+    }
+    entry += `\n  Tech: ${proj.technologies.slice(0, 4).join(', ')}`;
+    return entry;
+}).join('\n\n')}`;
     }
 
     // Add skills if relevant
@@ -152,12 +178,12 @@ INTERESTS: ${data.interests.join(', ')}`;
     }
 
     // Add key highlights/achievements
-    context += `
+    if (data.highlights?.length) {
+        context += `
 
 KEY HIGHLIGHTS:
-- Incoming Software Engineer Intern at LinkedIn (Summer 2026)
-- Best Overall Winner at SCEHacks 2025 for StudyBuddy project
-- Experience spanning iOS development, full-stack web, and AI/ML applications`;
+${data.highlights.map((h: string) => `- ${h}`).join('\n')}`;
+    }
 
     // Add FAQ if we have relevant ones
     const faqEntries = data.faq?.filter(f => 
@@ -176,12 +202,18 @@ ${faqEntries.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n')}`;
     context += `
 
 RESPONSE GUIDELINES:
-1. Lead with the answer. No greetings, preambles, or filler phrases.
-2. Be concise but thorough—include specific details like dates, company names, technologies, and achievements.
-3. Write in natural prose, not bullet points. 2-4 sentences is ideal for most questions.
-4. Use third-person consistently ("Ryan has..." not "I have...").
-5. Write with confidence—avoid hedging phrases like "I believe" or "It seems".
-6. Only use the information provided. If something isn't covered, say "That information isn't available on this portfolio."
+1. Start with a one-sentence intro that directly addresses the question (e.g. "Here are some of the projects Ryan has worked on."). Keep it short and natural.
+2. Never count items (e.g. never say "Ryan has built 3 projects" or "Ryan has had 2 internships").
+3. For questions listing multiple items (projects, experiences, skills): after the intro, list each item using this exact format:
+
+**Item Name** — 1-2 sentences describing it.
+
+Put a blank line between each item. This formatting is required so items render as separate blocks.
+4. For single-topic questions: after the intro, write 2-3 sentences of natural prose. Be specific—mention company names, technologies, dates, and results.
+5. Use third-person consistently ("Ryan built..." not "I built...").
+6. Mention specific technologies and achievements, but only the most relevant 2-3 per item—don't exhaustively list every technology.
+7. Write with confidence—no hedging phrases like "I believe" or "It seems".
+8. Only use information provided. If something isn't covered, say "That information isn't available on this portfolio."
 
 GUARDRAILS:
 - If asked about topics unrelated to Ryan's professional background (politics, personal opinions on unrelated topics, etc.), politely redirect: "This portfolio focuses on Ryan's professional work. Is there something about his experience or projects I can help with?"
@@ -253,9 +285,31 @@ async function storeInCache(
 
 export async function POST(request: NextRequest) {
     try {
+        // Validate request origin to block cross-origin abuse
+        const origin = request.headers.get('origin');
+        const referer = request.headers.get('referer');
+
+        if (origin && !ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed))) {
+            console.log(`🚫 Blocked request from origin: ${origin}`);
+            return NextResponse.json(
+                { error: 'Forbidden' },
+                { status: 403 }
+            );
+        }
+
+        // If no origin header (non-browser request), check referer as fallback
+        if (!origin && referer && !ALLOWED_ORIGINS.some(allowed => referer.startsWith(allowed))) {
+            console.log(`🚫 Blocked request from referer: ${referer}`);
+            return NextResponse.json(
+                { error: 'Forbidden' },
+                { status: 403 }
+            );
+        }
+
         // Get client IP for rate limiting
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-            request.headers.get('x-real-ip') ||
+        // Prefer x-real-ip (set by Vercel, not spoofable) over x-forwarded-for
+        const ip = request.headers.get('x-real-ip') ||
+            request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
             'unknown';
 
         // Check rate limit using Upstash Ratelimit
@@ -329,7 +383,7 @@ export async function POST(request: NextRequest) {
             }],
             generationConfig: {
                 temperature: 0.7,
-                maxOutputTokens: 500,
+                maxOutputTokens: 1024,
             },
         });
 

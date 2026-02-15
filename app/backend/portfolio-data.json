@@ -30,7 +30,13 @@
             "role": "Software Engineer Intern",
             "period": "May 2025 - Aug 2025",
             "location": "Remote",
-            "description": "Worked on an AI-powered basketball training app, building iOS features and a video and sensor data collection pipeline used to train machine learning models in production",
+            "description": "Built iOS features and ML data pipelines for an AI-powered basketball training app.",
+            "highlights": [
+                "Developed a video and Apple Watch sensor data collection application using SwiftUI to serve as a pipeline to train ML models in production",
+                "Integrated Firebase remote configuration to manage feature flags and user preferences",
+                "Restructured the app's architecture to improve code maintainability and scalability",
+                "Implemented a new UI/UX  and paywall for the app to improve the user experience"
+            ],
             "skills": [
                 "iOS Development",
                 "Swift",
@@ -45,7 +51,12 @@
             "role": "Software Engineer Intern",
             "period": "May 2024 - Aug 2024",
             "location": "San Jose, CA",
-            "description": "Developed and improved the SJSU Software and Engineering Society's club website",
+            "description": "Developed and maintained the SJSU Software and Computer Engineering Society's public-facing website.",
+            "highlights": [
+                "Rebuilt key pages in React, improving load performance and mobile responsiveness",
+                "Set up a CI/CD pipeline with GitHub Actions for automated testing and deployment",
+                "Collaborated with a team of student developers using a Git-based code review workflow"
+            ],
             "skills": [
                 "React",
                 "JavaScript",
@@ -59,7 +70,14 @@
     "projects": [
         {
             "title": "Fusion",
-            "description": "AI-powered platform for project managers to unify their Jira, Github, Slack, and Notion workflows",
+            "description": "AI-powered platform that unifies Jira, GitHub, Slack, and Notion into a single workflow dashboard for project managers.",
+            "highlights": [
+                "Built an AI-powered project management co-pilot integrating Jira, GitHub, Slack, and Notion into one unified interface",
+                "Implemented natural language task execution to create issues, track pull requests, and update documentation across platforms",
+                "Leveraged Google Gemini 2.5 Pro for intelligent workflow automation and real-time cross-platform summarization",
+                "Developed a modular integration architecture using Node.js, Express, React, and TypeScript for scalable tool expansion",
+                "Reduced context switching by centralizing multi-step project workflows into a single conversational dashboard"
+            ],
             "technologies": [
                 "Google Gemini MCP",
                 "TypeScript",
@@ -71,7 +89,15 @@
         },
         {
             "title": "StudyBuddy",
-            "description": "Your Canvas AI assistant (Best Overall Winner at SCEHacks 2025)",
+            "description": "AI-powered Canvas LMS assistant that helps students manage assignments, deadlines, and study schedules.",
+            "award": "Best Overall Winner at SCEHacks 2025",
+            "highlights": [
+                "Connected Canvas and Google Calendar to send students personalized daily text reminders for assignments and events",
+                "Crafted AI-generated SMS messages to feel more helpful and engaging than generic system notifications",
+                "Integrated Canvas API, Google OAuth, node-cron scheduling, and Textbelt SMS delivery into a seamless reminder system",
+                "Used OpenAI’s API to generate natural language reminder content that improves student organization and deadline awareness",
+                "Designed a student-centric productivity tool to reduce missed assignments and help users stay consistently on top of deadlines"
+            ],
             "technologies": [
                 "OpenAI API",
                 "Canvas API",
@@ -84,7 +110,14 @@
         },
         {
             "title": "VIVI",
-            "description": "A visualization tool for neurodivergent users to help them express their imagination",
+            "description": "Accessibility-focused visualization tool that helps neurodivergent users express their imagination through voice and gesture.",
+            "highlights": [
+                "Developed VIVI, an AI-powered storytelling companion that turns imagination into vivid visuals for neurodivergent learners",
+                "Designed to help users express thoughts and narratives through gaze-activated interaction and natural speech-to-image generation",
+                "Used gaze detection, speech recognition, and prompt enrichment to convert spoken story elements into engaging illustrations",
+                "Integrated OpenAI DALL·E for dynamic image generation and implemented a Chrome extension to visualize highlighted text across websites",
+                "Built with a full stack including React, TypeScript, FastAPI, Python, MediaPipe, OpenCV, and Twilio for seamless multimodal interaction"
+            ],
             "technologies": [
                 "OpenAI DALL-E 3 & Whisper",
                 "OpenCV",
@@ -135,6 +168,11 @@
             "CI/CD"
         ]
     },
+    "highlights": [
+        "Incoming Software Engineer Intern at LinkedIn (Summer 2026)",
+        "Best Overall Winner at SCEHacks 2025 for StudyBuddy project",
+        "Experience spanning iOS development, full-stack web, and AI/ML applications"
+    ],
     "focus_areas": [
         "Full Stack Architecture",
         "Backend Systems",

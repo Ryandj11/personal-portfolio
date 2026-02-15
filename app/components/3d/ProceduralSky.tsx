@@ -66,30 +66,44 @@ export function getSkyColors(hour: number) {
 
 // Get interpolated grass colors
 function getGrassColors(hour: number) {
-  const isNight = hour < 6 || hour >= 20;
-  const isDawn = hour >= 6 && hour < 8;
-  const isDusk = hour >= 18 && hour < 20;
+  // Key time points for grass color interpolation
+  const grassTimePoints = [
+    { hour: 0,    near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },    // Midnight - dark but still green
+    { hour: 5,    near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },    // Late night
+    { hour: 6,    near: "#2a6030", mid: "#357238", far: "#408240", horizon: "#5a9a55" },    // Dawn - greens waking up
+    { hour: 7,    near: "#3a7a30", mid: "#4a8c38", far: "#5a9a42", horizon: "#72b060" },    // Early morning - fresh green
+    { hour: 10,   near: "#4a8c2a", mid: "#55a030", far: "#65ac3e", horizon: "#80c060" },    // Mid-morning - vibrant
+    { hour: 12,   near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },    // Noon - brightest green
+    { hour: 14,   near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },    // Afternoon
+    { hour: 17,   near: "#488828", mid: "#529a30", far: "#60a538", horizon: "#7ab858" },    // Late afternoon - warm green
+    { hour: 18,   near: "#3d7828", mid: "#488a2e", far: "#559535", horizon: "#6aaa4a" },    // Sunset - golden-tinted green
+    { hour: 19,   near: "#2e6028", mid: "#35702e", far: "#407a35", horizon: "#508a42" },    // Dusk - darkening
+    { hour: 19.5, near: "#255530", mid: "#2c6035", far: "#346a3a", horizon: "#427a48" },    // Late dusk
+    { hour: 20,   near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },    // Night
+    { hour: 24,   near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },    // Midnight
+  ];
+
+  // Find the two time points to interpolate between
+  let prevPoint = grassTimePoints[0];
+  let nextPoint = grassTimePoints[1];
   
-  if (isNight) {
-    return { near: "#1a2d1a", mid: "#1e331e", far: "#243324", horizon: "#2a3d2a" };
-  } else if (isDawn) {
-    const t = (hour - 6) / 2;
-    return {
-      near: lerpColor("#1a2d1a", "#3d6b1e", t).getStyle(),
-      mid: lerpColor("#1e331e", "#4a7c23", t).getStyle(),
-      far: lerpColor("#243324", "#5a8a35", t).getStyle(),
-      horizon: lerpColor("#2a3d2a", "#7aa85a", t).getStyle(),
-    };
-  } else if (isDusk) {
-    const t = (hour - 18) / 2;
-    return {
-      near: lerpColor("#3d6b1e", "#1a2d1a", t).getStyle(),
-      mid: lerpColor("#4a7c23", "#1e331e", t).getStyle(),
-      far: lerpColor("#5a8a35", "#243324", t).getStyle(),
-      horizon: lerpColor("#7aa85a", "#2a3d2a", t).getStyle(),
-    };
+  for (let i = 0; i < grassTimePoints.length - 1; i++) {
+    if (hour >= grassTimePoints[i].hour && hour < grassTimePoints[i + 1].hour) {
+      prevPoint = grassTimePoints[i];
+      nextPoint = grassTimePoints[i + 1];
+      break;
+    }
   }
-  return { near: "#3d6b1e", mid: "#4a7c23", far: "#5a8a35", horizon: "#7aa85a" };
+
+  // Calculate interpolation factor
+  const t = (hour - prevPoint.hour) / (nextPoint.hour - prevPoint.hour);
+  
+  return {
+    near: lerpColor(prevPoint.near, nextPoint.near, t).getStyle(),
+    mid: lerpColor(prevPoint.mid, nextPoint.mid, t).getStyle(),
+    far: lerpColor(prevPoint.far, nextPoint.far, t).getStyle(),
+    horizon: lerpColor(prevPoint.horizon, nextPoint.horizon, t).getStyle(),
+  };
 }
 
 // Get time of day for discrete states
@@ -602,16 +616,16 @@ export function ArtisticSky() {
               vec3 dryColor = vec3(0.05, -0.02, -0.04) * dryPatch * 0.5;
               
               // Subtle highlights (sun catching grass tips)
-              float highlight = smoothstep(0.5, 0.8, fbm(vUv * 100.0)) * 0.04;
-              highlight *= mix(1.0, 0.2, smoothstep(0.0, 0.4, dist));
+              float highlight = smoothstep(0.45, 0.75, fbm(vUv * 100.0)) * 0.06;
+              highlight *= mix(1.0, 0.3, smoothstep(0.0, 0.4, dist));
               
               // Combine all effects
               color = color + vec3(totalNoise) + patchVariation + dryColor;
               color = color + vec3(bladePattern * 0.5);
               color = color + vec3(highlight);
               
-              // Subtle vignette/darkening at very close range
-              color = mix(color * 0.85, color, smoothstep(0.0, 0.15, dist));
+              // Subtle vignette/darkening at very close range (less aggressive)
+              color = mix(color * 0.92, color, smoothstep(0.0, 0.12, dist));
               
               // Atmospheric fade towards horizon
               float atmosFade = smoothstep(0.7, 1.0, dist);

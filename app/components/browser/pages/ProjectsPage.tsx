@@ -11,6 +11,23 @@ interface ProjectsPageProps {
 }
 
 export function ProjectsPage({ onNavigate, theme, onThemeChange }: ProjectsPageProps) {
+  const colors = {
+    bg: {
+      card: theme === "dark" ? "#303134" : "#ffffff",
+      cardHover: theme === "dark" ? "#3c4043" : "#f1f3f4",
+      tag: theme === "dark" ? "#202124" : "#e8eaed",
+      overlay: theme === "dark" ? "#202124" : "#000000",
+    },
+    text: {
+      primary: theme === "dark" ? "#e8eaed" : "#202124",
+      secondary: theme === "dark" ? "#bdc1c6" : "#3c4043",
+      tertiary: theme === "dark" ? "#9aa0a6" : "#5f6368",
+      link: theme === "dark" ? "#8ab4f8" : "#1a73e8",
+    },
+    border: theme === "dark" ? "#3c4043" : "#dadce0",
+    borderHover: theme === "dark" ? "#5f6368" : "#bdc1c6",
+  };
+
   const projects = [
     {
       title: "Fusion",
@@ -56,8 +73,8 @@ export function ProjectsPage({ onNavigate, theme, onThemeChange }: ProjectsPageP
 
   return (
     <ProfileLayout activeTab="projects" onNavigate={onNavigate} theme={theme} onThemeChange={onThemeChange}>
-      <div className="text-sm text-[#9aa0a6] mb-6">
-        Showing {projects.length} results for "projects"
+      <div className="text-sm mb-6" style={{ color: colors.text.tertiary }}>
+        Showing {projects.length} results for &quot;projects&quot;
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -65,7 +82,27 @@ export function ProjectsPage({ onNavigate, theme, onThemeChange }: ProjectsPageP
           const link = project.demo !== "#" ? project.demo : project.github !== "#" ? project.github : null;
           
           const card = (
-            <div className="group h-full bg-[#303134] border border-[#3c4043] rounded-xl overflow-hidden hover:bg-[#3c4043] transition-all hover:border-[#5f6368] cursor-pointer">
+            <div 
+              className="group h-full rounded-xl overflow-hidden transition-all cursor-pointer"
+              style={{ 
+                backgroundColor: colors.bg.card, 
+                borderWidth: 1, 
+                borderStyle: "solid", 
+                borderColor: colors.border 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.cardHover;
+                e.currentTarget.style.borderColor = colors.borderHover;
+                const title = e.currentTarget.querySelector<HTMLElement>('[data-title]');
+                if (title) title.style.color = colors.text.link;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = colors.bg.card;
+                e.currentTarget.style.borderColor = colors.border;
+                const title = e.currentTarget.querySelector<HTMLElement>('[data-title]');
+                if (title) title.style.color = colors.text.primary;
+              }}
+            >
               {/* Project Image/Preview Area */}
               <div className={`h-40 relative flex items-center justify-center overflow-hidden ${!project.image.startsWith('/') ? project.image : ''}`}>
                  {project.image.startsWith('/') && (
@@ -81,7 +118,10 @@ export function ProjectsPage({ onNavigate, theme, onThemeChange }: ProjectsPageP
                  
                  {/* Visual indicator for click */}
                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-                    <div className="bg-[#202124]/80 backdrop-blur-sm px-4 py-2 rounded-full border border-[#5f6368] text-white text-sm font-medium">
+                    <div 
+                      className="backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-medium"
+                      style={{ backgroundColor: `${colors.bg.overlay}cc`, borderWidth: 1, borderStyle: "solid", borderColor: colors.borderHover }}
+                    >
                       View Project
                     </div>
                  </div>
@@ -89,20 +129,20 @@ export function ProjectsPage({ onNavigate, theme, onThemeChange }: ProjectsPageP
 
               {/* Content */}
               <div className="p-4">
-                 <div className="text-xs text-[#9aa0a6] mb-1 uppercase tracking-wider font-semibold">
+                 <div className="text-xs mb-1 uppercase tracking-wider font-semibold" style={{ color: colors.text.tertiary }}>
                     {project.tags[0]}
                  </div>
-                 <h3 className="text-lg font-medium text-[#e8eaed] mb-2 group-hover:text-[#8ab4f8] transition-colors">
+                 <h3 data-title className="text-lg font-medium mb-2 transition-colors" style={{ color: colors.text.primary }}>
                     {project.title}
                  </h3>
-                 <p className="text-sm text-[#bdc1c6] line-clamp-2 mb-4">
+                 <p className="text-sm line-clamp-2 mb-4" style={{ color: colors.text.secondary }}>
                     {project.description}
                  </p>
 
                  {/* Tags */}
                  <div className="flex flex-wrap gap-2">
                     {project.tags.slice(1).map(tag => (
-                        <span key={tag} className="text-xs text-[#9aa0a6] bg-[#202124] px-2 py-1 rounded-md">
+                        <span key={tag} className="text-xs px-2 py-1 rounded-md" style={{ color: colors.text.tertiary, backgroundColor: colors.bg.tag }}>
                             {tag}
                         </span>
                     ))}

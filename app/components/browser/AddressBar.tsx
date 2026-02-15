@@ -258,7 +258,6 @@ export function AddressBar({
                 <button
                   onClick={() => {
                     onThemeChange(theme === 'dark' ? 'light' : 'dark');
-                    setShowDropdown(false);
                   }}
                   style={{ color: colors.text.primary }}
                   className="w-full px-4 py-2 text-left text-sm flex items-center gap-3 transition-colors"

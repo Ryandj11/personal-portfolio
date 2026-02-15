@@ -11,6 +11,42 @@ import {
 import { ProfileDropdown } from "../ProfileDropdown";
 import type { Theme } from "../BrowserWindow";
 
+// Lightweight markdown renderer for AI answers
+// Supports: **bold**, \n line breaks, and \n\n paragraph breaks
+function renderMarkdown(text: string, textColor: string, secondaryColor: string) {
+  // Split on double newlines for paragraph breaks
+  const paragraphs = text.split(/\n\n+/);
+
+  return paragraphs.map((paragraph, pIdx) => {
+    // Split on single newlines within a paragraph
+    const lines = paragraph.split(/\n/);
+
+    return (
+      <div key={pIdx} className={pIdx > 0 ? "mt-3" : ""}>
+        {lines.map((line, lIdx) => {
+          // Parse **bold** segments
+          const parts = line.split(/(\*\*[^*]+\*\*)/g);
+          return (
+            <span key={lIdx}>
+              {lIdx > 0 && <br />}
+              {parts.map((part, partIdx) => {
+                if (part.startsWith("**") && part.endsWith("**")) {
+                  return (
+                    <strong key={partIdx} style={{ color: textColor }} className="font-semibold">
+                      {part.slice(2, -2)}
+                    </strong>
+                  );
+                }
+                return <span key={partIdx} style={{ color: secondaryColor }}>{part}</span>;
+              })}
+            </span>
+          );
+        })}
+      </div>
+    );
+  });
+}
+
 interface SearchResultsProps {
   query: string;
   onNavigate: (url: string) => void;
@@ -66,11 +102,15 @@ export function SearchResults({
           body: JSON.stringify({ query }),
         });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch search results');
-        }
-
         const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            const retrySeconds = data.retryAfter || 60;
+            throw new Error(`You're searching too fast! Please wait ${retrySeconds} seconds before trying again.`);
+          }
+          throw new Error(data.error || 'Failed to fetch search results');
+        }
         
         if (data.success && data.answer) {
           setAnswer(data.answer);
@@ -80,7 +120,7 @@ export function SearchResults({
       } catch (err: any) {
         console.error('Search error:', err);
         setError(err.message || 'Failed to load search results');
-        setAnswer('Sorry, I could not process your search. Please try again.');
+        setAnswer(err.message || 'Sorry, I could not process your search. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -233,8 +273,8 @@ export function SearchResults({
                   <div style={{ backgroundColor: colors.bg.tertiary }} className="h-4 rounded w-4/6 shimmer" />
                 </div>
               ) : (
-                <div style={{ color: colors.text.primary }} className="text-sm leading-7">
-                  {answer}
+                <div className="text-sm leading-7">
+                  {renderMarkdown(answer, colors.text.primary, colors.text.secondary)}
                 </div>
               )}
             </div>

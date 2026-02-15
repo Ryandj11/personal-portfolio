@@ -174,7 +174,6 @@ export function ProfileDropdown({
               <button
                 onClick={() => {
                   onThemeChange(theme === 'dark' ? 'light' : 'dark');
-                  setShowDropdown(false);
                 }}
                 style={{ color: colors.text.primary }}
                 className="w-full px-3 py-2.5 text-left text-sm flex items-center gap-3 rounded-lg transition-colors"
