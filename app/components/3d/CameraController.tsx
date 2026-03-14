@@ -6,8 +6,14 @@ import * as THREE from "three";
 
 export type ViewType = "room" | "monitor";
 
+export interface FocusTarget {
+  position: THREE.Vector3;
+  target: THREE.Vector3;
+}
+
 interface CameraControllerProps {
   view: ViewType;
+  focusTarget?: FocusTarget | null;
 }
 
 // Camera presets for each view
@@ -33,7 +39,7 @@ const CAMERA_PRESETS = {
   },
 };
 
-export function CameraController({ view }: CameraControllerProps) {
+export function CameraController({ view, focusTarget }: CameraControllerProps) {
   const cameraControlsRef = useRef<CameraControls>(null);
   const isInitialMount = useRef(true);
 
@@ -41,7 +47,8 @@ export function CameraController({ view }: CameraControllerProps) {
     const controls = cameraControlsRef.current;
     if (!controls) return;
 
-    const preset = CAMERA_PRESETS[view];
+    // focusTarget takes priority over view presets
+    const preset = focusTarget ?? CAMERA_PRESETS[view];
     
     // On initial mount, set camera immediately (no animation)
     // On subsequent changes, animate to the new position
@@ -56,13 +63,15 @@ export function CameraController({ view }: CameraControllerProps) {
     );
     
     isInitialMount.current = false;
-  }, [view]);
+  }, [view, focusTarget]);
+
+  const isInteracting = view !== "room" || focusTarget != null;
 
   return (
     <CameraControls
       ref={cameraControlsRef}
       // Limit user controls based on view
-      enabled={view === "room"}
+      enabled={!isInteracting}
       // Smooth damping
       smoothTime={0.5}
       

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Group } from "three";
 import { useFrame } from "@react-three/fiber";
 import { RoundedBox, Html } from "@react-three/drei";
@@ -9,13 +9,20 @@ import { BrowserWindow } from "../browser/BrowserWindow";
 interface CurvedMonitorProps {
   position?: [number, number, number];
   rotation?: [number, number, number];
+  onClick?: () => void;
+  showLabel?: boolean;
+  isHighlighted?: boolean;
 }
 
 export function CurvedMonitor({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
+  onClick,
+  showLabel = false,
+  isHighlighted = false,
 }: CurvedMonitorProps) {
   const groupRef = useRef<Group>(null);
+  const [hovered, setHovered] = useState(false);
   const monitorRef = useRef<Group>(null);
 
   // Monitor Physical Dimensions (units)
@@ -44,7 +51,24 @@ export function CurvedMonitor({
   });
 
   return (
-    <group ref={groupRef} position={position} rotation={rotation}>
+    <group
+      ref={groupRef}
+      position={position}
+      rotation={rotation}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+        if (onClick) document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        setHovered(false);
+        document.body.style.cursor = "default";
+      }}
+    >
       {/* Stand */}
       <MonitorStand
         monitorHeight={monitorCenterY}
@@ -63,7 +87,6 @@ export function CurvedMonitor({
           style={{
             width: `${pixelWidth}px`,
             height: `${pixelHeight}px`,
-            // Essential for interactivity
             pointerEvents: "auto",
           }}
         >
@@ -71,11 +94,35 @@ export function CurvedMonitor({
             style={{
               width: `${pixelWidth}px`,
               height: `${pixelHeight}px`,
-              backgroundColor: "#202124", // Match browser bg
+              backgroundColor: "#202124",
               overflow: "hidden",
+              position: "relative",
+              cursor: showLabel ? "pointer" : "default",
+            }}
+            onMouseEnter={() => { if (showLabel) setHovered(true); }}
+            onMouseLeave={() => { setHovered(false); }}
+            onClick={(e) => {
+              if (showLabel && onClick) {
+                e.stopPropagation();
+                onClick();
+              }
             }}
           >
-            <BrowserWindow />
+            <div style={{ pointerEvents: showLabel ? "none" : "auto", height: "100%" }}>
+              <BrowserWindow />
+            </div>
+            {/* Screen hover overlay */}
+            {((hovered && showLabel) || isHighlighted) && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(255, 255, 255, 0.06)",
+                  pointerEvents: "none",
+                  transition: "opacity 0.3s ease",
+                }}
+              />
+            )}
           </div>
         </Html>
 
@@ -95,6 +142,8 @@ export function CurvedMonitor({
             color="#111111"
             roughness={0.6}
             metalness={0.4}
+            emissive={(hovered && showLabel) || isHighlighted ? "#ffffff" : "#000000"}
+            emissiveIntensity={(hovered && showLabel) || isHighlighted ? 0.15 : 0}
           />
         </RoundedBox>
 
@@ -113,6 +162,8 @@ export function CurvedMonitor({
             color="#1a1a1a"
             roughness={0.7}
             metalness={0.3}
+            emissive={(hovered && showLabel) || isHighlighted ? "#ffffff" : "#000000"}
+            emissiveIntensity={(hovered && showLabel) || isHighlighted ? 0.1 : 0}
           />
         </RoundedBox>
 

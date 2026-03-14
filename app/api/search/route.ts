@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { Redis } from '@upstash/redis';
-import { Ratelimit } from '@upstash/ratelimit';
 import portfolioData from '../../backend/portfolio-data.json';
 
 // ============================================
 // CONFIGURATION
 // ============================================
-const CACHE_TTL = 86400; // 24 hour in seconds
-const CACHE_PREFIX = 'search:';
 
 // Allowed origins for request validation
 const ALLOWED_ORIGINS = [
@@ -22,47 +18,28 @@ const ALLOWED_ORIGINS = [
 // INITIALIZE CLIENTS
 // ============================================
 
-// Initialize Upstash Redis
-const redis = Redis.fromEnv();
-
-// Initialize rate limiter with sliding window
-const ratelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '1 m'), // 5 requests per minute
-    analytics: true,
-    prefix: 'ratelimit:search:',
-});
+// Simple in-memory rate limiter per IP
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute window
+const MAX_REQUESTS_PER_WINDOW = 5; // 5 requests per minute
 
 // Initialize Google Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const chatModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-// ============================================
-// CACHE TYPES
-// ============================================
-interface CacheEntry {
-    query: string;
-    answer: string;
-    results: any[];
-    timestamp: number;
-}
+
 
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
 
-// Normalize query for cache key (lowercase, trim, remove extra spaces/punctuation)
+// Normalize query (lowercase, trim, remove extra spaces/punctuation)
 function normalizeQuery(query: string): string {
     return query
         .toLowerCase()
         .trim()
         .replace(/[^\w\s]/g, '') // Remove punctuation
         .replace(/\s+/g, ' ');   // Normalize whitespace
-}
-
-// Generate cache key from query
-function getCacheKey(query: string): string {
-    return `${CACHE_PREFIX}${normalizeQuery(query)}`;
 }
 
 // ============================================
@@ -204,11 +181,11 @@ ${faqEntries.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n')}`;
 RESPONSE GUIDELINES:
 1. Start with a one-sentence intro that directly addresses the question (e.g. "Here are some of the projects Ryan has worked on."). Keep it short and natural.
 2. Never count items (e.g. never say "Ryan has built 3 projects" or "Ryan has had 2 internships").
-3. For questions listing multiple items (projects, experiences, skills): after the intro, list each item using this exact format:
+3. For questions listing multiple items (projects, experiences, skills): after the intro, list each item using bullet points using this exact format:
 
-**Item Name** — 1-2 sentences describing it.
+- **Item Name** — 1-2 sentences describing it.
 
-Put a blank line between each item. This formatting is required so items render as separate blocks.
+Put each item on a new line started with a dash and space \`- \`. This formatting is required so it is easy to read.
 4. For single-topic questions: after the intro, write 2-3 sentences of natural prose. Be specific—mention company names, technologies, dates, and results.
 5. Use third-person consistently ("Ryan built..." not "I built...").
 6. Mention specific technologies and achievements, but only the most relevant 2-3 per item—don't exhaustively list every technology.
@@ -230,54 +207,7 @@ GUARDRAILS:
     return context;
 }
 
-// ============================================
-// REDIS CACHE FUNCTIONS
-// ============================================
 
-// Check for exact match in Redis cache
-async function getFromCache(query: string): Promise<CacheEntry | null> {
-    try {
-        const key = getCacheKey(query);
-        console.log(`🔍 Checking cache for: "${query}" (key: ${key})`);
-
-        const cached = await redis.get<CacheEntry>(key);
-
-        if (cached) {
-            console.log(`✅ CACHE HIT`);
-            return cached;
-        }
-
-        console.log(`❌ CACHE MISS`);
-        return null;
-    } catch (error) {
-        console.error('Redis cache lookup error:', error);
-        return null;
-    }
-}
-
-// Store entry in Redis cache
-async function storeInCache(
-    query: string,
-    answer: string,
-    results: any[]
-): Promise<void> {
-    try {
-        const entry: CacheEntry = {
-            query,
-            answer,
-            results,
-            timestamp: Date.now(),
-        };
-
-        const key = getCacheKey(query);
-
-        // Store with TTL
-        await redis.set(key, entry, { ex: CACHE_TTL });
-        console.log(`💾 Cached: "${query}" (TTL: ${CACHE_TTL}s)`);
-    } catch (error) {
-        console.error('Redis cache store error:', error);
-    }
-}
 
 // ============================================
 // API ROUTE HANDLER
@@ -312,8 +242,21 @@ export async function POST(request: NextRequest) {
             request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
             'unknown';
 
-        // Check rate limit using Upstash Ratelimit
-        const { success, limit, remaining, reset } = await ratelimit.limit(ip);
+        // Simple in-memory rate limit check
+        const now = Date.now();
+        let rateLimitInfo = rateLimitMap.get(ip);
+        
+        if (!rateLimitInfo || now > rateLimitInfo.resetTime) {
+            rateLimitInfo = { count: 0, resetTime: now + RATE_LIMIT_WINDOW_MS };
+        }
+        
+        rateLimitInfo.count++;
+        rateLimitMap.set(ip, rateLimitInfo);
+        
+        const success = rateLimitInfo.count <= MAX_REQUESTS_PER_WINDOW;
+        const limit = MAX_REQUESTS_PER_WINDOW;
+        const remaining = Math.max(0, MAX_REQUESTS_PER_WINDOW - rateLimitInfo.count);
+        const reset = rateLimitInfo.resetTime;
 
         if (!success) {
             console.log(`⚠️ Rate limit exceeded for IP: ${ip}`);
@@ -355,23 +298,6 @@ export async function POST(request: NextRequest) {
         console.log(`\n📝 Processing search: "${query}"`);
         console.log(`   Rate limit: ${remaining}/${limit} remaining`);
 
-        // Check Redis cache (exact match)
-        const cached = await getFromCache(query);
-        if (cached) {
-            return NextResponse.json({
-                success: true,
-                query,
-                answer: cached.answer,
-                results: cached.results,
-                cached: true,
-            }, {
-                headers: {
-                    'X-RateLimit-Remaining': remaining.toString(),
-                    'X-Cache-Status': 'HIT',
-                }
-            });
-        }
-
         // Build dynamic context based on query keywords
         const systemPrompt = buildContextualPrompt(query, portfolioData);
 
@@ -392,9 +318,6 @@ export async function POST(request: NextRequest) {
         // Generate search results based on the query and answer
         const results = generateSearchResults(query, answer, portfolioData);
 
-        // Store in Redis cache
-        await storeInCache(query, answer, results);
-
         return NextResponse.json({
             success: true,
             query,
@@ -404,7 +327,6 @@ export async function POST(request: NextRequest) {
         }, {
             headers: {
                 'X-RateLimit-Remaining': remaining.toString(),
-                'X-Cache-Status': 'MISS',
             }
         });
 

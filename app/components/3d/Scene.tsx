@@ -3,8 +3,10 @@
 import { Canvas } from "@react-three/fiber";
 import { Environment } from "@react-three/drei";
 import { Suspense, useState, useEffect } from "react";
-import { Room } from "./Room";
+import { Room, GUITAR_FOCUS } from "./Room";
 import { CameraController, ViewType } from "./CameraController";
+import { Home, Monitor as MonitorIcon, Music } from "lucide-react";
+import type { FocusTarget } from "./CameraController";
 import { ArtisticSky, getPSTHour, getSkyColors, getTimeOfDay } from "./ProceduralSky";
 import { useWeather, getWeatherForHour } from "../../hooks/useWeather";
 import type { WeatherCondition } from "../../hooks/useWeather";
@@ -123,9 +125,15 @@ function RoomLighting({
 function SceneContent({
   currentView,
   onViewChange,
+  focusTarget,
+  onFocusChange,
+  hoveredNav,
 }: {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
+  focusTarget: FocusTarget | null;
+  onFocusChange: (target: FocusTarget | null) => void;
+  hoveredNav: string | null;
 }) {
   const { data: weatherData } = useWeather();
   const [hour, setHour] = useState(getPSTHour());
@@ -234,7 +242,7 @@ function SceneContent({
         weatherCondition={effectiveWeather.weatherCondition}
         cloudCover={effectiveWeather.cloudCover}
       />
-      <Room currentView={currentView} onViewChange={onViewChange} />
+      <Room currentView={currentView} focusTarget={focusTarget} onViewChange={onViewChange} onFocusChange={onFocusChange} hoveredNav={hoveredNav} />
       <Environment preset="apartment" environmentIntensity={0.3} />
     </>
   );
@@ -242,21 +250,8 @@ function SceneContent({
 
 export function Scene() {
   const [currentView, setCurrentView] = useState<ViewType>("room");
-  const [showBackButton, setShowBackButton] = useState(false);
-
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    if (currentView === "monitor") {
-      timeoutId = setTimeout(() => {
-        setShowBackButton(true);
-      }, 800);
-    } else {
-      setShowBackButton(false);
-    }
-
-    return () => clearTimeout(timeoutId);
-  }, [currentView]);
+  const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
+  const [hoveredNav, setHoveredNav] = useState<string | null>(null);
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh" }}>
@@ -268,47 +263,106 @@ export function Scene() {
           <SceneContent
             currentView={currentView}
             onViewChange={setCurrentView}
+            focusTarget={focusTarget}
+            onFocusChange={setFocusTarget}
+            hoveredNav={hoveredNav}
           />
         </Suspense>
-        <CameraController view={currentView} />
+        <CameraController view={currentView} focusTarget={focusTarget} />
       </Canvas>
 
-      {showBackButton && currentView === "monitor" && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "5rem",
-            right: "2rem",
-            zIndex: 50,
-            opacity: 1,
-            animation: "fadeIn 0.5s ease-out",
-          }}
-        >
+      {/* Scalable Bottom Navigation Bar */}
+      <div
+        style={{
+          position: "absolute", 
+          bottom: "2rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 10000000, // Must exceed the canvas z-index (~8.3M set by @react-three/fiber)
+          display: "flex",
+          gap: "1rem",
+          padding: "0.5rem",
+          background: "rgba(20, 20, 20, 0.7)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: "9999px",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+          // Responsive layout for many items
+          maxWidth: "90vw",
+          overflowX: "auto",
+        }}
+        className="scrollbar-hide" // Hides scrollbar if it needs to scroll
+      >
+        {/* Navigation Items Configuration */}
+        {[
+          {
+            id: "room",
+            label: "Home",
+            icon: <Home size={20} strokeWidth={2.5} />,
+            isActive: currentView === "room" && focusTarget === null,
+            onClick: () => {
+              setCurrentView("room");
+              setFocusTarget(null);
+            },
+          },
+          {
+            id: "monitor",
+            label: "Monitor",
+            icon: <MonitorIcon size={20} strokeWidth={2.5} />,
+            isActive: currentView === "monitor",
+            onClick: () => {
+              setCurrentView("monitor");
+              setFocusTarget(null);
+            },
+          },
+          {
+            id: "guitar",
+            label: "Guitar",
+            icon: <Music size={20} strokeWidth={2.5} />,
+            isActive: focusTarget !== null,
+            onClick: () => {
+              setCurrentView("room");
+              setFocusTarget(GUITAR_FOCUS);
+            },
+          },
+        ].map((item) => (
           <button
-            className="flex items-center gap-2 px-6 py-3 bg-black/70 backdrop-blur-md border border-white/20 rounded-full text-white text-base font-semibold 
-                       cursor-pointer transition-all duration-200 hover:bg-black/90 hover:scale-105 whitespace-nowrap shadow-xl"
-            onClick={() => setCurrentView("room")}
+            key={item.id}
+            onClick={item.onClick}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 20px",
+              borderRadius: "9999px",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              background: item.isActive ? "rgba(255, 255, 255, 0.9)" : "transparent",
+              color: item.isActive ? "#000" : "rgba(255, 255, 255, 0.6)",
+              fontWeight: 600,
+              fontSize: "14px",
+            }}
+            onMouseEnter={(e) => {
+              setHoveredNav(item.id);
+              if (!item.isActive) {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.9)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              setHoveredNav(null);
+              if (!item.isActive) {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.6)";
+              }
+            }}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Back to Room
+            {item.icon}
+            <span>{item.label}</span>
           </button>
-          <style>{`
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(10px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

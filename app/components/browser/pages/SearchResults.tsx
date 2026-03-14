@@ -12,7 +12,7 @@ import { ProfileDropdown } from "../ProfileDropdown";
 import type { Theme } from "../BrowserWindow";
 
 // Lightweight markdown renderer for AI answers
-// Supports: **bold**, \n line breaks, and \n\n paragraph breaks
+// Supports: **bold**, \n line breaks, \n\n paragraph breaks, and basic bullet points
 function renderMarkdown(text: string, textColor: string, secondaryColor: string) {
   // Split on double newlines for paragraph breaks
   const paragraphs = text.split(/\n\n+/);
@@ -24,21 +24,36 @@ function renderMarkdown(text: string, textColor: string, secondaryColor: string)
     return (
       <div key={pIdx} className={pIdx > 0 ? "mt-3" : ""}>
         {lines.map((line, lIdx) => {
+          // Check for bullet items
+          const isBullet = line.trim().startsWith("- ") || line.trim().startsWith("* ");
+          const content = isBullet ? line.trim().substring(2) : line;
+
           // Parse **bold** segments
-          const parts = line.split(/(\*\*[^*]+\*\*)/g);
+          const parts = content.split(/(\*\*[^*]+\*\*)/g);
+          
+          const renderedParts = parts.map((part, partIdx) => {
+            if (part.startsWith("**") && part.endsWith("**")) {
+              return (
+                <strong key={partIdx} style={{ color: textColor }} className="font-semibold">
+                  {part.slice(2, -2)}
+                </strong>
+              );
+            }
+            return <span key={partIdx} style={{ color: secondaryColor }}>{part}</span>;
+          });
+
+          if (isBullet) {
+            return (
+              <div key={lIdx} className="flex gap-2 mt-2">
+                <span style={{ color: secondaryColor }}>•</span>
+                <span className="flex-1">{renderedParts}</span>
+              </div>
+            );
+          }
+
           return (
-            <span key={lIdx}>
-              {lIdx > 0 && <br />}
-              {parts.map((part, partIdx) => {
-                if (part.startsWith("**") && part.endsWith("**")) {
-                  return (
-                    <strong key={partIdx} style={{ color: textColor }} className="font-semibold">
-                      {part.slice(2, -2)}
-                    </strong>
-                  );
-                }
-                return <span key={partIdx} style={{ color: secondaryColor }}>{part}</span>;
-              })}
+            <span key={lIdx} className="block mt-1">
+              {renderedParts}
             </span>
           );
         })}
@@ -94,6 +109,27 @@ export function SearchResults({
       setError(null);
 
       try {
+        const normalizedQuery = query.trim().toLowerCase();
+        const cacheKey = `ryan_search_${normalizedQuery}`;
+
+        // Check sessionStorage first
+        const cachedData = sessionStorage.getItem(cacheKey);
+        if (cachedData) {
+          try {
+            const parsed = JSON.parse(cachedData);
+            if (parsed.success && parsed.answer) {
+              console.log('✅ Client Cache Hit for:', normalizedQuery);
+              setAnswer(parsed.answer);
+              setIsLoading(false);
+              return; // Skip fetch
+            }
+          } catch (e) {
+            console.error('Failed to parse cached search results:', e);
+          }
+        }
+
+        console.log('❌ Client Cache Miss for:', normalizedQuery);
+
         const response = await fetch('/api/search', {
           method: 'POST',
           headers: {
@@ -109,10 +145,17 @@ export function SearchResults({
             const retrySeconds = data.retryAfter || 60;
             throw new Error(`You're searching too fast! Please wait ${retrySeconds} seconds before trying again.`);
           }
-          throw new Error(data.error || 'Failed to fetch search results');
+          throw new Error(data.message || data.error || 'Failed to fetch search results');
         }
         
         if (data.success && data.answer) {
+          // Store in sessionStorage
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify(data));
+          } catch (e) {
+            console.error('Failed to save search results to cache:', e);
+          }
+
           setAnswer(data.answer);
         } else {
           throw new Error(data.error || 'Unknown error occurred');
