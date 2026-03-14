@@ -6,13 +6,40 @@ import portfolioData from '../../backend/portfolio-data.json';
 // CONFIGURATION
 // ============================================
 
-// Allowed origins for request validation
-const ALLOWED_ORIGINS = [
-    process.env.NEXT_PUBLIC_SITE_URL,           // Custom domain if set
-    `https://${process.env.VERCEL_URL}`,         // Vercel preview/production URL
-    'http://localhost:3000',                      // Local development
+// Allowed origins for development
+const LOCAL_ORIGINS = [
+    'http://localhost:3000',
     'http://localhost:3001',
-].filter(Boolean) as string[];
+];
+
+// Base check for Vercel and custom domains
+function isOriginAllowed(origin: string | null, referer: string | null, host: string | null): boolean {
+    const allowedPatterns = [
+        process.env.NEXT_PUBLIC_SITE_URL,
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+        ...LOCAL_ORIGINS
+    ].filter(Boolean) as string[];
+
+    const checkUrl = origin || referer;
+    if (!checkUrl) return false;
+
+    // 1. Check against explicit allowed list
+    if (allowedPatterns.some(allowed => checkUrl.startsWith(allowed))) {
+        return true;
+    }
+
+    // 2. Allow if origin matches current host (standard for same-site requests)
+    if (host && checkUrl.includes(host)) {
+        return true;
+    }
+
+    // 3. Robust Vercel preview/production check (*.vercel.app)
+    if (checkUrl.includes('.vercel.app')) {
+        return true;
+    }
+
+    return false;
+}
 
 // ============================================
 // INITIALIZE CLIENTS
@@ -215,23 +242,24 @@ GUARDRAILS:
 
 export async function POST(request: NextRequest) {
     try {
-        // Validate request origin to block cross-origin abuse
+        // Validate request origin/referer to block cross-origin abuse
         const origin = request.headers.get('origin');
         const referer = request.headers.get('referer');
+        const host = request.headers.get('host');
 
-        if (origin && !ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed))) {
-            console.log(`🚫 Blocked request from origin: ${origin}`);
+        if (!isOriginAllowed(origin, referer, host)) {
+            console.log(`🚫 Blocked request:
+               Origin: ${origin || 'none'}
+               Referer: ${referer || 'none'}
+               Host: ${host || 'none'}
+               Allowed Site URL: ${process.env.NEXT_PUBLIC_SITE_URL || 'not set'}
+               Vercel URL: ${process.env.VERCEL_URL || 'not set'}`);
+            
             return NextResponse.json(
-                { error: 'Forbidden' },
-                { status: 403 }
-            );
-        }
-
-        // If no origin header (non-browser request), check referer as fallback
-        if (!origin && referer && !ALLOWED_ORIGINS.some(allowed => referer.startsWith(allowed))) {
-            console.log(`🚫 Blocked request from referer: ${referer}`);
-            return NextResponse.json(
-                { error: 'Forbidden' },
+                { 
+                    error: 'Forbidden', 
+                    message: 'Security validation failed. Access restricted to Ryan Johnson\'s portfolio.' 
+                },
                 { status: 403 }
             );
         }
