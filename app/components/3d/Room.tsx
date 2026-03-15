@@ -4,6 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { CurvedMonitor } from "./Monitor";
 import { Guitar } from "./Guitar";
+import { GuitarWallMount } from "./GuitarWallMount";
 import { ViewType } from "./CameraController";
 import type { FocusTarget } from "./CameraController";
 
@@ -35,6 +36,11 @@ export function Room({ currentView, focusTarget, onViewChange, onFocusChange, ho
         onClick={isRoomView ? () => onViewChange("monitor") : undefined}
         showLabel={isRoomView}
         isHighlighted={hoveredNav === "monitor" && currentView !== "monitor"}
+      />
+      <GuitarWallMount
+        position={[-2.18, 2, -0.1]}
+        rotation={[0, 0, 0]}
+        scale={2}
       />
       <Guitar
         position={[-1.3, 1.3, -0.45]}
