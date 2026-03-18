@@ -363,6 +363,24 @@ export function Scene() {
           </button>
         ))}
       </div>
+      <p
+        style={{
+          position: "absolute",
+          bottom: "0.6rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 10000000,
+          margin: 0,
+          fontSize: "11px",
+          fontStyle: "italic",
+          color: "rgba(255, 255, 255, 0.35)",
+          whiteSpace: "nowrap",
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      >
+        *Time & Weather Currently in Bay Area
+      </p>
     </div>
   );
 }

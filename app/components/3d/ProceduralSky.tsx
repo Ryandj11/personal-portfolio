@@ -7,13 +7,22 @@ import type { WeatherCondition, InterpolatedWeather } from "../../hooks/useWeath
 
 // ─── Time helpers ────────────────────────────────────────────────────────────
 
-export function getPSTHour(): number {
+/** Current decimal hour in America/Los_Angeles (handles PST ↔ PDT automatically) */
+export function getLAHour(): number {
   const now = new Date();
-  const pstOffset = -8;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const pst = new Date(utc + 3600000 * pstOffset);
-  return pst.getHours() + pst.getMinutes() / 60;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  }).formatToParts(now);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return hour + minute / 60;
 }
+
+/** @deprecated Use getLAHour instead */
+export const getPSTHour = getLAHour;
 
 // ─── Color helpers ───────────────────────────────────────────────────────────
 
