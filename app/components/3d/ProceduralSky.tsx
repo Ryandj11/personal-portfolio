@@ -38,7 +38,7 @@ export function getSkyColors(hour: number, sunrise = 6, sunset = 19) {
   // Dynamically build time keyframes around actual sunrise/sunset
   const dawnStart = sunrise - 1;
   const dawnEnd = sunrise + 1;
-  const duskStart = sunset - 2;
+  const duskStart = sunset - 1;
   const duskMid = sunset;
   const duskEnd = sunset + 1;
   const nightStart = sunset + 1.5;
@@ -46,13 +46,13 @@ export function getSkyColors(hour: number, sunrise = 6, sunset = 19) {
   const timePoints = [
     { hour: 0,          top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
     { hour: dawnStart,  top: "#0a1628", middle: "#162442", bottom: "#1e3050", ambient: 0.15, sunsetColor: "#c89060", sunsetIntensity: 0.08 },
-    { hour: sunrise,    top: "#4a6fa5", middle: "#8aa8c8", bottom: "#d4b088", ambient: 0.4,  sunsetColor: "#d4a060", sunsetIntensity: 0.5 },
-    { hour: dawnEnd,    top: "#6ba3d6", middle: "#a0c0d8", bottom: "#d8c8a8", ambient: 0.6,  sunsetColor: "#d8b878", sunsetIntensity: 0.2 },
-    { hour: sunrise + 4,top: "#87CEEB", middle: "#a8d4e8", bottom: "#c8e6f0", ambient: 0.9,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
-    { hour: 12,         top: "#87CEEB", middle: "#87CEEB", bottom: "#b8dff5", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
-    { hour: 14,         top: "#87CEEB", middle: "#87CEEB", bottom: "#b8dff5", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
-    { hour: duskStart,  top: "#5a90c0", middle: "#88a8c0", bottom: "#d0b890", ambient: 0.7,  sunsetColor: "#d0a060", sunsetIntensity: 0.25 },
-    { hour: duskMid,    top: "#4070a8", middle: "#6890b0", bottom: "#c8a070", ambient: 0.5,  sunsetColor: "#d89050", sunsetIntensity: 0.55 },
+    { hour: sunrise,    top: "#3a5f8a", middle: "#7a9ab8", bottom: "#d4b088", ambient: 0.4,  sunsetColor: "#d4a060", sunsetIntensity: 0.5 },
+    { hour: dawnEnd,    top: "#4a80b8", middle: "#85aacf", bottom: "#c8c0a8", ambient: 0.6,  sunsetColor: "#d8b878", sunsetIntensity: 0.2 },
+    { hour: sunrise + 4,top: "#4A90D9", middle: "#6AAFE6", bottom: "#B0D4F1", ambient: 0.9,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
+    { hour: 12,         top: "#3E82CC", middle: "#5A9FDF", bottom: "#A8CCE8", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
+    { hour: sunset - 1.5,top: "#4A90D9", middle: "#6AAFE6", bottom: "#B0D4F1", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
+    { hour: duskStart,  top: "#4878A8", middle: "#7098B8", bottom: "#C8B898", ambient: 0.7,  sunsetColor: "#d0a060", sunsetIntensity: 0.25 },
+    { hour: duskMid,    top: "#3A6090", middle: "#5880A0", bottom: "#c8a070", ambient: 0.5,  sunsetColor: "#d89050", sunsetIntensity: 0.55 },
     { hour: duskEnd,    top: "#283c6a", middle: "#3c5880", bottom: "#687888", ambient: 0.35, sunsetColor: "#a08060", sunsetIntensity: 0.25 },
     { hour: nightStart, top: "#162850", middle: "#1e3458", bottom: "#2a3c5a", ambient: 0.22, sunsetColor: "#3a4868", sunsetIntensity: 0.05 },
     { hour: nightStart + 0.5, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
@@ -98,7 +98,7 @@ function getGrassColors(hour: number, sunrise = 6, sunset = 19) {
     { hour: sunrise + 4,near: "#4a8c2a", mid: "#55a030", far: "#65ac3e", horizon: "#80c060" },
     { hour: 12,         near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },
     { hour: 14,         near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },
-    { hour: sunset - 2, near: "#488828", mid: "#529a30", far: "#60a538", horizon: "#7ab858" },
+    { hour: sunset - 1, near: "#488828", mid: "#529a30", far: "#60a538", horizon: "#7ab858" },
     { hour: sunset,     near: "#3d7828", mid: "#488a2e", far: "#559535", horizon: "#6aaa4a" },
     { hour: sunset + 1, near: "#2e6028", mid: "#35702e", far: "#407a35", horizon: "#508a42" },
     { hour: nightStart, near: "#255530", mid: "#2c6035", far: "#346a3a", horizon: "#427a48" },
@@ -140,7 +140,7 @@ export function getTimeOfDay(
   const nightStart = sunset + 1.5;
   if (hour < sunrise || hour >= nightStart) return "night";
   if (hour < sunrise + 2) return "dawn";
-  if (hour < sunset - 1) return "day";
+  if (hour < sunset - 0.5) return "day";
   return "dusk";
 }
 

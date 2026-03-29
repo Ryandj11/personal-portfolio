@@ -21,7 +21,7 @@ export function Guitar({
   showLabel = false,
   isHighlighted = false,
 }: GuitarProps) {
-  const { scene } = useGLTF("/models/Guitar.glb");
+  const { scene } = useGLTF("/models/GuitarNew.glb");
   const [hovered, setHovered] = useState(false);
   const originalEmissives = useRef<Map<THREE.Mesh, { color: THREE.Color; intensity: number }>>(new Map());
 
@@ -87,5 +87,5 @@ export function Guitar({
   );
 }
 
-useGLTF.preload("/models/Guitar.glb");
+useGLTF.preload("/models/GuitarNew.glb");
 
