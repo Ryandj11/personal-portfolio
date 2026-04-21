@@ -7,7 +7,8 @@ import { Room, GUITAR_FOCUS } from "./Room";
 import { CameraController, ViewType } from "./CameraController";
 import { Home, Monitor as MonitorIcon, Music } from "lucide-react";
 import type { FocusTarget } from "./CameraController";
-import { ArtisticSky, getPSTHour, getSkyColors, getTimeOfDay } from "./ProceduralSky";
+import { ArtisticSky, getPSTHour, getSkyColors, getTimeOfDay, defaultTwilight } from "./ProceduralSky";
+import type { TwilightTimes } from "./ProceduralSky";
 import { useWeather, getWeatherForHour } from "../../hooks/useWeather";
 import type { WeatherCondition } from "../../hooks/useWeather";
 
@@ -15,11 +16,13 @@ import type { WeatherCondition } from "../../hooks/useWeather";
 function RoomLighting({
   sunrise = 6,
   sunset = 19,
+  twilight,
   weatherCondition = "clear" as WeatherCondition,
   cloudCover = 0,
 }: {
   sunrise?: number;
   sunset?: number;
+  twilight?: TwilightTimes;
   weatherCondition?: WeatherCondition;
   cloudCover?: number;
 }) {
@@ -44,10 +47,10 @@ function RoomLighting({
     return () => clearInterval(interval);
   }, []);
 
-  const skyColors = getSkyColors(hour, sunrise, sunset);
+  const skyColors = getSkyColors(hour, sunrise, sunset, twilight);
   const baseIntensity = skyColors.ambient;
 
-  const timeOfDay = getTimeOfDay(hour, sunrise, sunset);
+  const timeOfDay = getTimeOfDay(hour, sunrise, sunset, twilight);
 
   let lightColor = "#ffffff";
   if (timeOfDay === "night") {
@@ -190,6 +193,19 @@ function SceneContent({
   const sunrise = sunriseOverride ?? weatherData.sunrise;
   const sunset = sunsetOverride ?? weatherData.sunset;
 
+  // Use real twilight data from API, or compute defaults when overriding sunrise/sunset
+  const twilight: TwilightTimes =
+    sunriseOverride !== null || sunsetOverride !== null
+      ? defaultTwilight(sunrise, sunset)
+      : {
+          civilDawn: weatherData.civilDawn,
+          nauticalDawn: weatherData.nauticalDawn,
+          astronomicalDawn: weatherData.astronomicalDawn,
+          civilDusk: weatherData.civilDusk,
+          nauticalDusk: weatherData.nauticalDusk,
+          astronomicalDusk: weatherData.astronomicalDusk,
+        };
+
   // Get interpolated weather for current hour
   const currentWeather = getWeatherForHour(weatherData, hour);
 
@@ -234,11 +250,13 @@ function SceneContent({
       <ArtisticSky
         sunrise={sunrise}
         sunset={sunset}
+        twilight={twilight}
         weather={effectiveWeather}
       />
       <RoomLighting
         sunrise={sunrise}
         sunset={sunset}
+        twilight={twilight}
         weatherCondition={effectiveWeather.weatherCondition}
         cloudCover={effectiveWeather.cloudCover}
       />

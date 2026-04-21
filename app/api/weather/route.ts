@@ -46,6 +46,20 @@ function isoToDecimalHour(iso: string): number {
   return hours + minutes / 60;
 }
 
+// Convert a UTC ISO-8601 timestamp to a decimal hour in America/Los_Angeles
+function utcIsoToLADecimalHour(isoString: string): number {
+  const date = new Date(isoString);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    hour: "numeric",
+    minute: "numeric",
+    hour12: false,
+  }).formatToParts(date);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return hour + minute / 60;
+}
+
 export interface HourlyWeather {
   hour: number;
   weatherCode: number;
@@ -61,6 +75,12 @@ export interface WeatherData {
   hourly: HourlyWeather[];
   sunrise: number;
   sunset: number;
+  civilDawn: number;
+  nauticalDawn: number;
+  astronomicalDawn: number;
+  civilDusk: number;
+  nauticalDusk: number;
+  astronomicalDusk: number;
 }
 
 // Cache the response for 1 hour on the server
@@ -79,15 +99,31 @@ export async function GET() {
     url.searchParams.set("timezone", TIMEZONE);
     url.searchParams.set("forecast_days", "1");
 
-    const response = await fetch(url.toString(), {
-      next: { revalidate: 3600 },
-    });
+    const twilightUrl = `https://api.sunrise-sunset.org/json?lat=${LATITUDE}&lng=${LONGITUDE}&formatted=0`;
+
+    const [response, twilightResponse] = await Promise.all([
+      fetch(url.toString(), { next: { revalidate: 3600 } }),
+      fetch(twilightUrl, { next: { revalidate: 3600 } }).catch(() => null),
+    ]);
 
     if (!response.ok) {
       throw new Error(`Open-Meteo API returned ${response.status}`);
     }
 
     const raw = await response.json();
+
+    // Parse twilight data (graceful fallback if unavailable)
+    let twilightData: Record<string, string> | null = null;
+    try {
+      if (twilightResponse?.ok) {
+        const twilightJson = await twilightResponse.json();
+        if (twilightJson.status === "OK") {
+          twilightData = twilightJson.results;
+        }
+      }
+    } catch {
+      // Twilight API failed — will use computed defaults below
+    }
 
     // Transform Open-Meteo's array format into our structured format
     const hourly: HourlyWeather[] = [];
@@ -111,10 +147,31 @@ export async function GET() {
     const sunriseStr: string = raw.daily?.sunrise?.[0] ?? "";
     const sunsetStr: string = raw.daily?.sunset?.[0] ?? "";
 
+    const sunriseHour = sunriseStr ? isoToDecimalHour(sunriseStr) : 6;
+    const sunsetHour = sunsetStr ? isoToDecimalHour(sunsetStr) : 19;
+
     const data: WeatherData = {
       hourly,
-      sunrise: sunriseStr ? isoToDecimalHour(sunriseStr) : 6,
-      sunset: sunsetStr ? isoToDecimalHour(sunsetStr) : 19,
+      sunrise: sunriseHour,
+      sunset: sunsetHour,
+      civilDawn: twilightData
+        ? utcIsoToLADecimalHour(twilightData.civil_twilight_begin)
+        : sunriseHour - 0.45,
+      nauticalDawn: twilightData
+        ? utcIsoToLADecimalHour(twilightData.nautical_twilight_begin)
+        : sunriseHour - 1.0,
+      astronomicalDawn: twilightData
+        ? utcIsoToLADecimalHour(twilightData.astronomical_twilight_begin)
+        : sunriseHour - 1.5,
+      civilDusk: twilightData
+        ? utcIsoToLADecimalHour(twilightData.civil_twilight_end)
+        : sunsetHour + 0.45,
+      nauticalDusk: twilightData
+        ? utcIsoToLADecimalHour(twilightData.nautical_twilight_end)
+        : sunsetHour + 1.0,
+      astronomicalDusk: twilightData
+        ? utcIsoToLADecimalHour(twilightData.astronomical_twilight_end)
+        : sunsetHour + 1.5,
     };
 
     return NextResponse.json(data, {
@@ -139,6 +196,12 @@ export async function GET() {
       })),
       sunrise: 6,
       sunset: 19,
+      civilDawn: 5.55,
+      nauticalDawn: 5.0,
+      astronomicalDawn: 4.5,
+      civilDusk: 19.45,
+      nauticalDusk: 20.0,
+      astronomicalDusk: 20.5,
     };
 
     return NextResponse.json(fallback, {

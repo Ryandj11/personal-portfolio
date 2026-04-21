@@ -32,31 +32,49 @@ function lerpColor(color1: string, color2: string, t: number): THREE.Color {
   return c1.lerp(c2, t);
 }
 
-// ─── Sky color system (now sunrise/sunset-aware) ─────────────────────────────
+// ─── Twilight types ──────────────────────────────────────────────────────────
 
-export function getSkyColors(hour: number, sunrise = 6, sunset = 19) {
-  // Dynamically build time keyframes around actual sunrise/sunset
-  const dawnStart = sunrise - 1;
-  const dawnEnd = sunrise + 1;
-  const duskStart = sunset - 1;
-  const duskMid = sunset;
-  const duskEnd = sunset + 1;
-  const nightStart = sunset + 1.5;
+export interface TwilightTimes {
+  civilDawn: number;
+  nauticalDawn: number;
+  astronomicalDawn: number;
+  civilDusk: number;
+  nauticalDusk: number;
+  astronomicalDusk: number;
+}
+
+export function defaultTwilight(sunrise: number, sunset: number): TwilightTimes {
+  return {
+    civilDawn: sunrise - 0.45,
+    nauticalDawn: sunrise - 1.0,
+    astronomicalDawn: sunrise - 1.5,
+    civilDusk: sunset + 0.45,
+    nauticalDusk: sunset + 1.0,
+    astronomicalDusk: sunset + 1.5,
+  };
+}
+
+// ─── Sky color system (twilight-aware) ───────────────────────────────────────
+
+export function getSkyColors(hour: number, sunrise = 6, sunset = 19, twilight?: TwilightTimes) {
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
+  const morningBright = sunrise + (sunrise - tw.civilDawn);
 
   const timePoints = [
-    { hour: 0,          top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
-    { hour: dawnStart,  top: "#0a1628", middle: "#162442", bottom: "#1e3050", ambient: 0.15, sunsetColor: "#c89060", sunsetIntensity: 0.08 },
-    { hour: sunrise,    top: "#3a5f8a", middle: "#7a9ab8", bottom: "#d4b088", ambient: 0.4,  sunsetColor: "#d4a060", sunsetIntensity: 0.5 },
-    { hour: dawnEnd,    top: "#4a80b8", middle: "#85aacf", bottom: "#c8c0a8", ambient: 0.6,  sunsetColor: "#d8b878", sunsetIntensity: 0.2 },
-    { hour: sunrise + 4,top: "#4A90D9", middle: "#6AAFE6", bottom: "#B0D4F1", ambient: 0.9,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
-    { hour: 12,         top: "#3E82CC", middle: "#5A9FDF", bottom: "#A8CCE8", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
-    { hour: sunset - 1.5,top: "#4A90D9", middle: "#6AAFE6", bottom: "#B0D4F1", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
-    { hour: duskStart,  top: "#4878A8", middle: "#7098B8", bottom: "#C8B898", ambient: 0.7,  sunsetColor: "#d0a060", sunsetIntensity: 0.25 },
-    { hour: duskMid,    top: "#3A6090", middle: "#5880A0", bottom: "#c8a070", ambient: 0.5,  sunsetColor: "#d89050", sunsetIntensity: 0.55 },
-    { hour: duskEnd,    top: "#283c6a", middle: "#3c5880", bottom: "#687888", ambient: 0.35, sunsetColor: "#a08060", sunsetIntensity: 0.25 },
-    { hour: nightStart, top: "#162850", middle: "#1e3458", bottom: "#2a3c5a", ambient: 0.22, sunsetColor: "#3a4868", sunsetIntensity: 0.05 },
-    { hour: nightStart + 0.5, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
-    { hour: 24,         top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
+    { hour: 0,                   top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
+    { hour: tw.nauticalDawn,     top: "#0a1628", middle: "#162442", bottom: "#1e3050", ambient: 0.15, sunsetColor: "#c89060", sunsetIntensity: 0.08 },
+    { hour: tw.civilDawn,        top: "#1e3a60", middle: "#3a5a80", bottom: "#8a7060", ambient: 0.25, sunsetColor: "#d0a060", sunsetIntensity: 0.35 },
+    { hour: sunrise,             top: "#3a5f8a", middle: "#7a9ab8", bottom: "#d4b088", ambient: 0.4,  sunsetColor: "#d4a060", sunsetIntensity: 0.5 },
+    { hour: morningBright,       top: "#4a80b8", middle: "#85aacf", bottom: "#c8c0a8", ambient: 0.6,  sunsetColor: "#d8b878", sunsetIntensity: 0.2 },
+    { hour: sunrise + 4,         top: "#4A90D9", middle: "#6AAFE6", bottom: "#B0D4F1", ambient: 0.9,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
+    { hour: 12,                  top: "#3E82CC", middle: "#5A9FDF", bottom: "#A8CCE8", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
+    { hour: sunset - 1.5,        top: "#4A90D9", middle: "#6AAFE6", bottom: "#B0D4F1", ambient: 1.0,  sunsetColor: "#d8c090", sunsetIntensity: 0.0 },
+    { hour: sunset - 1,          top: "#4878A8", middle: "#7098B8", bottom: "#C8B898", ambient: 0.7,  sunsetColor: "#d0a060", sunsetIntensity: 0.25 },
+    { hour: sunset,              top: "#3A6090", middle: "#5880A0", bottom: "#c8a070", ambient: 0.5,  sunsetColor: "#d89050", sunsetIntensity: 0.55 },
+    { hour: tw.civilDusk,        top: "#283c6a", middle: "#3c5880", bottom: "#687888", ambient: 0.35, sunsetColor: "#a08060", sunsetIntensity: 0.25 },
+    { hour: tw.nauticalDusk,     top: "#162850", middle: "#1e3458", bottom: "#2a3c5a", ambient: 0.22, sunsetColor: "#3a4868", sunsetIntensity: 0.05 },
+    { hour: tw.astronomicalDusk, top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
+    { hour: 24,                  top: "#0a1628", middle: "#162442", bottom: "#1a2d4d", ambient: 0.15, sunsetColor: "#162442", sunsetIntensity: 0.0 },
   ];
 
   // Ensure sorted by hour
@@ -88,22 +106,24 @@ export function getSkyColors(hour: number, sunrise = 6, sunset = 19) {
 
 // ─── Grass colors (sunrise/sunset-aware) ─────────────────────────────────────
 
-function getGrassColors(hour: number, sunrise = 6, sunset = 19) {
-  const nightStart = sunset + 1.5;
+function getGrassColors(hour: number, sunrise = 6, sunset = 19, twilight?: TwilightTimes) {
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
+  const morningBright = sunrise + (sunrise - tw.civilDawn);
+
   const grassTimePoints = [
-    { hour: 0,          near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
-    { hour: sunrise - 1,near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
-    { hour: sunrise,    near: "#2a6030", mid: "#357238", far: "#408240", horizon: "#5a9a55" },
-    { hour: sunrise + 1,near: "#3a7a30", mid: "#4a8c38", far: "#5a9a42", horizon: "#72b060" },
-    { hour: sunrise + 4,near: "#4a8c2a", mid: "#55a030", far: "#65ac3e", horizon: "#80c060" },
-    { hour: 12,         near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },
-    { hour: 14,         near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },
-    { hour: sunset - 1, near: "#488828", mid: "#529a30", far: "#60a538", horizon: "#7ab858" },
-    { hour: sunset,     near: "#3d7828", mid: "#488a2e", far: "#559535", horizon: "#6aaa4a" },
-    { hour: sunset + 1, near: "#2e6028", mid: "#35702e", far: "#407a35", horizon: "#508a42" },
-    { hour: nightStart, near: "#255530", mid: "#2c6035", far: "#346a3a", horizon: "#427a48" },
-    { hour: nightStart + 0.5, near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
-    { hour: 24,         near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
+    { hour: 0,                   near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
+    { hour: tw.nauticalDawn,     near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
+    { hour: sunrise,             near: "#2a6030", mid: "#357238", far: "#408240", horizon: "#5a9a55" },
+    { hour: morningBright,       near: "#3a7a30", mid: "#4a8c38", far: "#5a9a42", horizon: "#72b060" },
+    { hour: sunrise + 4,         near: "#4a8c2a", mid: "#55a030", far: "#65ac3e", horizon: "#80c060" },
+    { hour: 12,                  near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },
+    { hour: 14,                  near: "#4e9028", mid: "#58a530", far: "#68b03c", horizon: "#85c562" },
+    { hour: sunset - 1,          near: "#488828", mid: "#529a30", far: "#60a538", horizon: "#7ab858" },
+    { hour: sunset,              near: "#3d7828", mid: "#488a2e", far: "#559535", horizon: "#6aaa4a" },
+    { hour: tw.civilDusk,        near: "#2e6028", mid: "#35702e", far: "#407a35", horizon: "#508a42" },
+    { hour: tw.nauticalDusk,     near: "#255530", mid: "#2c6035", far: "#346a3a", horizon: "#427a48" },
+    { hour: tw.astronomicalDusk, near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
+    { hour: 24,                  near: "#1e4a2a", mid: "#245530", far: "#2d5e38", horizon: "#3a6d45" },
   ];
 
   grassTimePoints.sort((a, b) => a.hour - b.hour);
@@ -135,11 +155,12 @@ function getGrassColors(hour: number, sunrise = 6, sunset = 19) {
 export function getTimeOfDay(
   hour: number,
   sunrise = 6,
-  sunset = 19
+  sunset = 19,
+  twilight?: TwilightTimes
 ): "night" | "dawn" | "day" | "dusk" {
-  const nightStart = sunset + 1.5;
-  if (hour < sunrise || hour >= nightStart) return "night";
-  if (hour < sunrise + 2) return "dawn";
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
+  if (hour < tw.civilDawn || hour >= tw.nauticalDusk) return "night";
+  if (hour < sunrise + 1) return "dawn";
   if (hour < sunset - 0.5) return "day";
   return "dusk";
 }
@@ -149,12 +170,13 @@ export function getTimeOfDay(
 function getSunPosition(
   hour: number,
   sunrise = 6,
-  sunset = 19
+  sunset = 19,
+  twilight?: TwilightTimes
 ): [number, number, number] {
-  const nightStart = sunset + 1.5;
-  if (hour < sunrise || hour >= nightStart) return [0, -100, 150];
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
+  if (hour < sunrise || hour >= tw.civilDusk) return [0, -100, 150];
 
-  const dayLength = nightStart - sunrise;
+  const dayLength = tw.civilDusk - sunrise;
   const progress = (hour - sunrise) / dayLength;
 
   const angle = progress * Math.PI;
@@ -199,6 +221,7 @@ interface CloudProps {
   hour: number;
   sunrise?: number;
   sunset?: number;
+  twilight?: TwilightTimes;
 }
 
 function Cloud({
@@ -209,19 +232,21 @@ function Cloud({
   hour,
   sunrise = 6,
   sunset = 19,
+  twilight,
 }: CloudProps) {
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
   const meshRef = useRef<THREE.Group>(null);
   const initialX = position[0];
-  const timeOfDay = getTimeOfDay(hour, sunrise, sunset);
+  const timeOfDay = getTimeOfDay(hour, sunrise, sunset, tw);
 
   const cloudColor = useMemo(() => {
-    if (hour < sunrise || hour >= sunset + 1.5) return "#3a4a5a";
-    if (hour < sunrise + 2) {
-      const t = (hour - sunrise) / 2;
+    if (hour < tw.civilDawn || hour >= tw.nauticalDusk) return "#3a4a5a";
+    if (hour < sunrise + 1) {
+      const t = (hour - tw.civilDawn) / (sunrise + 1 - tw.civilDawn);
       return lerpColor("#3a4a5a", "#fff8f0", t).getStyle();
     }
     if (hour >= sunset) {
-      const t = (hour - sunset) / 1.5;
+      const t = (hour - sunset) / (tw.nauticalDusk - sunset);
       return lerpColor("#ffccaa", "#3a4a5a", t).getStyle();
     }
     if (hour >= sunset - 1) {
@@ -229,7 +254,7 @@ function Cloud({
       return lerpColor("#fff8f0", "#ffccaa", t).getStyle();
     }
     return "#fff8f0";
-  }, [hour, sunrise, sunset]);
+  }, [hour, sunrise, sunset, tw]);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -318,13 +343,14 @@ function DynamicClouds({
   cloudCover,
   sunrise,
   sunset,
+  twilight,
 }: {
   hour: number;
   cloudCover: number;
   sunrise: number;
   sunset: number;
+  twilight?: TwilightTimes;
 }) {
-  // Cloud cover 0-100 -> show 1-8 clouds, opacity scales too
   const numClouds = Math.max(1, Math.min(8, Math.round((cloudCover / 100) * 8)));
   const opacityScale = 0.5 + (cloudCover / 100) * 0.5;
 
@@ -340,6 +366,7 @@ function DynamicClouds({
           hour={hour}
           sunrise={sunrise}
           sunset={sunset}
+          twilight={twilight}
         />
       ))}
     </>
@@ -352,21 +379,29 @@ function Stars({
   hour,
   sunrise = 6,
   sunset = 19,
+  twilight,
 }: {
   hour: number;
   sunrise?: number;
   sunset?: number;
+  twilight?: TwilightTimes;
 }) {
+  const tw = twilight ?? defaultTwilight(sunrise, sunset ?? 19);
   const starsRef = useRef<THREE.Points>(null);
-  const nightStart = sunset + 1.5;
-  const isNight = hour < sunrise || hour >= nightStart;
+  const isNight = hour < tw.nauticalDawn || hour >= tw.nauticalDusk;
 
   const starOpacity = useMemo(() => {
-    if (hour >= sunrise && hour < nightStart) return 0;
-    if (hour >= sunrise - 1 && hour < sunrise) return 1 - (hour - (sunrise - 1));
-    if (hour >= nightStart && hour < nightStart + 1) return hour - nightStart;
+    if (hour >= tw.nauticalDawn && hour < tw.nauticalDusk) return 0;
+    // Fade out at dawn
+    if (hour >= tw.astronomicalDawn && hour < tw.nauticalDawn) {
+      return 1 - (hour - tw.astronomicalDawn) / (tw.nauticalDawn - tw.astronomicalDawn);
+    }
+    // Fade in at dusk
+    if (hour >= tw.nauticalDusk && hour < tw.astronomicalDusk) {
+      return (hour - tw.nauticalDusk) / (tw.astronomicalDusk - tw.nauticalDusk);
+    }
     return 0.9;
-  }, [hour, sunrise, nightStart]);
+  }, [hour, tw]);
 
   const [positions, sizes] = useMemo(() => {
     const count = 400;
@@ -429,34 +464,40 @@ function Sun({
   sunrise = 6,
   sunset = 19,
   cloudCover = 0,
+  twilight,
 }: {
   position: [number, number, number];
   hour: number;
   sunrise?: number;
   sunset?: number;
   cloudCover?: number;
+  twilight?: TwilightTimes;
 }) {
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
+  const dawnLen = sunrise - tw.civilDawn;
+  const duskLen = tw.civilDusk - sunset;
+
   const sunColor = useMemo(() => {
-    if (hour < sunrise + 1) return "#e8a050";
-    if (hour < sunrise + 2)
-      return lerpColor("#e8a050", "#FFD700", hour - (sunrise + 1)).getStyle();
+    if (hour < sunrise + dawnLen) return "#e8a050";
+    if (hour < sunrise + dawnLen * 2)
+      return lerpColor("#e8a050", "#FFD700", (hour - (sunrise + dawnLen)) / dawnLen).getStyle();
     if (hour >= sunset)
-      return lerpColor("#FFD700", "#e08040", (hour - sunset) / 2).getStyle();
+      return lerpColor("#FFD700", "#e08040", (hour - sunset) / (duskLen * 2)).getStyle();
     return "#FFD700";
-  }, [hour, sunrise, sunset]);
+  }, [hour, sunrise, sunset, dawnLen, duskLen]);
 
   const glowColor = useMemo(() => {
-    if (hour < sunrise + 2) return "#e8b878";
+    if (hour < sunrise + dawnLen * 2) return "#e8b878";
     if (hour >= sunset - 1) return "#e0a060";
     return "#FFA500";
-  }, [hour, sunrise, sunset]);
+  }, [hour, sunrise, sunset, dawnLen]);
 
   const visibility = useMemo(() => {
     if (hour < sunrise) return 0;
-    if (hour < sunrise + 1) return hour - sunrise;
-    if (hour >= sunset + 1) return Math.max(0, sunset + 2 - hour);
+    if (hour < sunrise + dawnLen) return (hour - sunrise) / dawnLen;
+    if (hour >= sunset) return Math.max(0, 1 - (hour - sunset) / duskLen);
     return 1;
-  }, [hour, sunrise, sunset]);
+  }, [hour, sunrise, sunset, dawnLen, duskLen]);
 
   // Dim the sun when overcast
   const overcastDim = 1 - (cloudCover / 100) * 0.5;
@@ -500,18 +541,22 @@ function Moon({
   hour,
   sunrise = 6,
   sunset = 19,
+  twilight,
 }: {
   position: [number, number, number];
   hour: number;
   sunrise?: number;
   sunset?: number;
+  twilight?: TwilightTimes;
 }) {
+  const tw = twilight ?? defaultTwilight(sunrise, sunset);
+
   const visibility = useMemo(() => {
     if (hour >= sunrise && hour < sunset) return 0;
-    if (hour >= sunrise - 1 && hour < sunrise) return sunrise - hour;
-    if (hour >= sunset && hour < sunset + 1.5) return (hour - sunset) / 1.5;
+    if (hour >= tw.civilDawn && hour < sunrise) return (sunrise - hour) / (sunrise - tw.civilDawn);
+    if (hour >= sunset && hour < tw.nauticalDusk) return (hour - sunset) / (tw.nauticalDusk - sunset);
     return 1;
-  }, [hour, sunrise, sunset]);
+  }, [hour, sunrise, sunset, tw]);
 
   if (visibility <= 0) return null;
 
@@ -728,12 +773,14 @@ function applyOvercast(
 export interface ArtisticSkyProps {
   sunrise?: number;
   sunset?: number;
+  twilight?: TwilightTimes;
   weather?: InterpolatedWeather;
 }
 
 export function ArtisticSky({
   sunrise = 6,
   sunset = 19,
+  twilight,
   weather,
 }: ArtisticSkyProps) {
   const skyRef = useRef<THREE.Mesh>(null);
@@ -760,7 +807,7 @@ export function ArtisticSky({
           console.log(
             `Testing time: ${Math.floor(parsedHour)}:${Math.round((parsedHour % 1) * 60)
               .toString()
-              .padStart(2, "0")} (${getTimeOfDay(parsedHour, sunrise, sunset)})`
+              .padStart(2, "0")} (${getTimeOfDay(parsedHour, sunrise, sunset, twilight)})`
           );
           return;
         }
@@ -774,14 +821,14 @@ export function ArtisticSky({
   }, [sunrise, sunset]);
 
   // Compute sky colors with overcast applied
-  const rawSkyColors = getSkyColors(hour, sunrise, sunset);
+  const rawSkyColors = getSkyColors(hour, sunrise, sunset, twilight);
   const skyColors = applyOvercast(
     rawSkyColors,
     currentWeather.cloudCover,
     currentWeather.weatherCondition
   );
-  const grassColors = getGrassColors(hour, sunrise, sunset);
-  const sunPosition = getSunPosition(hour, sunrise, sunset);
+  const grassColors = getGrassColors(hour, sunrise, sunset, twilight);
+  const sunPosition = getSunPosition(hour, sunrise, sunset, twilight);
   const moonPosition = getMoonPosition(hour, sunrise, sunset);
 
   // Determine which weather effects to show
@@ -912,6 +959,7 @@ export function ArtisticSky({
         sunrise={sunrise}
         sunset={sunset}
         cloudCover={currentWeather.cloudCover}
+        twilight={twilight}
       />
 
       {/* Moon */}
@@ -920,10 +968,11 @@ export function ArtisticSky({
         hour={hour}
         sunrise={sunrise}
         sunset={sunset}
+        twilight={twilight}
       />
 
       {/* Stars */}
-      <Stars hour={hour} sunrise={sunrise} sunset={sunset} />
+      <Stars hour={hour} sunrise={sunrise} sunset={sunset} twilight={twilight} />
 
       {/* Ground/Grass */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -15, 150]}>
@@ -1049,6 +1098,7 @@ export function ArtisticSky({
         cloudCover={currentWeather.cloudCover}
         sunrise={sunrise}
         sunset={sunset}
+        twilight={twilight}
       />
 
       {/* Weather Effects */}

@@ -35,6 +35,12 @@ const DEFAULT_WEATHER: WeatherData = {
   })),
   sunrise: 6,
   sunset: 19,
+  civilDawn: 5.55,
+  nauticalDawn: 5.0,
+  astronomicalDawn: 4.5,
+  civilDusk: 19.45,
+  nauticalDusk: 20.0,
+  astronomicalDusk: 20.5,
 };
 
 function lerp(a: number, b: number, t: number): number {
