@@ -41,8 +41,8 @@ export function ProjectsPage({ onNavigate, theme, onThemeChange }: ProjectsPageP
     {
       title: "StudyBuddy",
       description: "Your Canvas AI assistant (Best Overall Winner at SCEHacks 2025)",
-      image: "bg-blue-400",
-      icon: "📚",
+      image: "/images/studdybuddy.png",
+      icon: "",
       tags: ["OpenAI API", "Canvas API", "Node.js", "SMS API", "Cron-Job"],
       demo: "https://devpost.com/software/studybuddy-g1hwqe",
       github: ""

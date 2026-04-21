@@ -580,70 +580,116 @@ function Moon({
 
 // ─── Rain particle system ────────────────────────────────────────────────────
 
-function Rain({ intensity }: { intensity: number }) {
+function Rain({ intensity, windSpeed = 0 }: { intensity: number; windSpeed?: number }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const count = Math.min(2000, Math.round(intensity * 500 + 400));
+  // Fewer particles, but each one is more visible and better animated
+  const count = Math.min(1200, Math.round(intensity * 300 + 200));
 
-  // Rain only outside the window. Parent group is at [0, -2, 80].
-  // The room/window is at roughly world Z=0, so local Z = -80.
+  // Parent group is at [0, -2, 80].
   // Keep rain at local Z >= -70 so it stays beyond the window.
-  const { offsets, speeds, lengths } = useMemo(() => {
+  const particleData = useMemo(() => {
     const off = new Float32Array(count * 3);
     const spd = new Float32Array(count);
     const len = new Float32Array(count);
+    const sizes = new Float32Array(count);
+    const phases = new Float32Array(count);
+    const opacities = new Float32Array(count);
+
     for (let i = 0; i < count; i++) {
-      off[i * 3] = (Math.random() - 0.5) * 200;      // X: wide spread outdoors
-      off[i * 3 + 1] = Math.random() * 60 + 10;      // Y: 10 to 70
-      off[i * 3 + 2] = Math.random() * 200 - 70;     // Z: -70 to 130 (all outside window)
-      spd[i] = 1.0 + Math.random() * 0.6 + intensity * 0.4;
-      len[i] = 0.8 + Math.random() * 1.0 + intensity * 0.4;
+      off[i * 3] = (Math.random() - 0.5) * 200;
+      off[i * 3 + 1] = Math.random() * 60 + 10;
+      off[i * 3 + 2] = Math.random() * 200 - 70;
+
+      // Size factor: larger drops fall faster, are longer and thicker
+      const sizeFactor = 0.4 + Math.random() * 0.6;
+      sizes[i] = sizeFactor;
+      spd[i] = (0.6 + sizeFactor * 0.8 + intensity * 0.15) * 60;
+      len[i] = 0.5 + sizeFactor * 0.8 + Math.min(intensity, 3) * 0.15;
+
+      phases[i] = Math.random() * Math.PI * 2;
+
+      // Depth-based opacity: drops further away (high Z) are more transparent
+      const zNorm = (off[i * 3 + 2] + 70) / 200;
+      opacities[i] = 0.3 + sizeFactor * 0.3 - zNorm * 0.15;
     }
-    return { offsets: off, speeds: spd, lengths: len };
+    return { offsets: off, speeds: spd, lengths: len, sizes, phases, opacities };
   }, [count, intensity]);
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const windRef = useRef(windSpeed);
+  windRef.current = windSpeed;
+
+  // Wind-driven tilt angle (radians)
+  const windAngle = useMemo(() => {
+    const w = Math.min(windSpeed, 40);
+    return (w / 40) * 0.35;
+  }, [windSpeed]);
+
+  const tiltQuat = useMemo(() => {
+    const q = new THREE.Quaternion();
+    q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), windAngle);
+    return q;
+  }, [windAngle]);
 
   useEffect(() => {
     if (!meshRef.current) return;
     for (let i = 0; i < count; i++) {
+      const { offsets, lengths, sizes } = particleData;
       dummy.position.set(offsets[i * 3], offsets[i * 3 + 1], offsets[i * 3 + 2]);
-      dummy.scale.set(1, lengths[i], 1);
+      dummy.quaternion.copy(tiltQuat);
+      const thickness = 0.6 + sizes[i] * 0.5;
+      dummy.scale.set(thickness, lengths[i], thickness);
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
     }
     meshRef.current.instanceMatrix.needsUpdate = true;
-  }, [count, offsets, lengths, dummy]);
+  }, [count, particleData, dummy, tiltQuat]);
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
+    const { offsets, speeds, lengths, sizes, phases, opacities } = particleData;
+
+    const clampedDelta = Math.min(delta, 0.05);
+    const wind = Math.min(windRef.current, 40);
+    const windDrift = (wind / 40) * 30;
+    const time = state.clock.elapsedTime;
 
     for (let i = 0; i < count; i++) {
-      offsets[i * 3 + 1] -= speeds[i];
-      offsets[i * 3] += 0.02;
+      offsets[i * 3 + 1] -= speeds[i] * clampedDelta;
+
+      // Wind + per-drop turbulence
+      const turbulence = Math.sin(time * 1.5 + phases[i]) * 2;
+      offsets[i * 3] += (windDrift + turbulence) * clampedDelta;
+      offsets[i * 3 + 2] += Math.sin(time * 0.8 + phases[i] * 2.3) * 1.5 * clampedDelta;
 
       if (offsets[i * 3 + 1] < -5) {
         offsets[i * 3 + 1] = Math.random() * 60 + 10;
         offsets[i * 3] = (Math.random() - 0.5) * 200;
         offsets[i * 3 + 2] = Math.random() * 200 - 70;
+
+        const zNorm = (offsets[i * 3 + 2] + 70) / 200;
+        opacities[i] = 0.3 + sizes[i] * 0.3 - zNorm * 0.15;
       }
 
       dummy.position.set(offsets[i * 3], offsets[i * 3 + 1], offsets[i * 3 + 2]);
-      dummy.scale.set(1, lengths[i], 1);
+      dummy.quaternion.copy(tiltQuat);
+      const thickness = 0.6 + sizes[i] * 0.5;
+      dummy.scale.set(thickness, lengths[i], thickness);
       dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, dummy.matrix);
     }
     meshRef.current.instanceMatrix.needsUpdate = true;
   });
 
-  const opacity = Math.min(0.65, 0.3 + intensity * 0.08);
+  const baseOpacity = Math.min(0.45, 0.2 + intensity * 0.05);
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, count]} frustumCulled={false}>
-      <cylinderGeometry args={[0.015, 0.015, 1, 3, 1]} />
+      <cylinderGeometry args={[0.03, 0.02, 1, 4, 1]} />
       <meshBasicMaterial
-        color="#b0c4de"
+        color="#a8bdd4"
         transparent
-        opacity={opacity}
+        opacity={baseOpacity}
         depthWrite={false}
       />
     </instancedMesh>
@@ -1102,7 +1148,7 @@ export function ArtisticSky({
       />
 
       {/* Weather Effects */}
-      {showRain && <Rain intensity={rainIntensity} />}
+      {showRain && <Rain intensity={rainIntensity} windSpeed={currentWeather.windSpeed} />}
       {showSnow && <Snow intensity={currentWeather.snowfall} />}
       <WeatherFog active={showFog} />
     </group>
