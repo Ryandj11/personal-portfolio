@@ -12,6 +12,7 @@ interface CurvedMonitorProps {
   onClick?: () => void;
   showLabel?: boolean;
   isHighlighted?: boolean;
+  onReady?: () => void;
 }
 
 export function CurvedMonitor({
@@ -20,6 +21,7 @@ export function CurvedMonitor({
   onClick,
   showLabel = false,
   isHighlighted = false,
+  onReady,
 }: CurvedMonitorProps) {
   const groupRef = useRef<Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -94,7 +96,7 @@ export function CurvedMonitor({
             style={{
               width: `${pixelWidth}px`,
               height: `${pixelHeight}px`,
-              backgroundColor: "#202124",
+              background: `linear-gradient(to bottom, #202124 40px, #35363a 40px, #35363a 76px, #323639 76px)`,
               overflow: "hidden",
               position: "relative",
               cursor: showLabel ? "pointer" : "default",
@@ -109,7 +111,7 @@ export function CurvedMonitor({
             }}
           >
             <div style={{ pointerEvents: showLabel ? "none" : "auto", height: "100%" }}>
-              <BrowserWindow />
+              <BrowserWindow onReady={onReady} />
             </div>
             {/* Screen hover overlay */}
             {((hovered && showLabel) || isHighlighted) && (

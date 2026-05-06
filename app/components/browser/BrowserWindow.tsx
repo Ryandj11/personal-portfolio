@@ -12,6 +12,7 @@ import { ProjectsPage } from "./pages/ProjectsPage";
 
 interface BrowserWindowProps {
   children?: ReactNode;
+  onReady?: () => void;
 }
 
 // Extended Tab type with per-tab history
@@ -39,7 +40,7 @@ const initialTabs: TabWithHistory[] = [
 
 export type Theme = "dark" | "light";
 
-export function BrowserWindow({ children }: BrowserWindowProps) {
+export function BrowserWindow({ children, onReady }: BrowserWindowProps) {
   const [tabs, setTabs] = useState<TabWithHistory[]>(initialTabs);
   const [theme, setTheme] = useState<Theme>("dark");
   const [visitedUrls, setVisitedUrls] = useState<Set<string>>(new Set(["ryan://home"]));
@@ -54,6 +55,11 @@ export function BrowserWindow({ children }: BrowserWindowProps) {
     if (savedTheme) {
       setTheme(savedTheme);
     }
+  }, []);
+
+  // Signal to parent that the browser UI has painted
+  useEffect(() => {
+    onReady?.();
   }, []);
 
   // Save theme to localStorage when it changes

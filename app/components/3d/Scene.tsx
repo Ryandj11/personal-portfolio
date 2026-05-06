@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Environment } from "@react-three/drei";
+import { Environment, useProgress } from "@react-three/drei";
 import { Suspense, useState, useEffect } from "react";
 import { Room, GUITAR_FOCUS } from "./Room";
 import { CameraController, ViewType } from "./CameraController";
@@ -131,12 +131,14 @@ function SceneContent({
   focusTarget,
   onFocusChange,
   hoveredNav,
+  onBrowserReady,
 }: {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
   focusTarget: FocusTarget | null;
   onFocusChange: (target: FocusTarget | null) => void;
   hoveredNav: string | null;
+  onBrowserReady: () => void;
 }) {
   const { data: weatherData } = useWeather();
   const [hour, setHour] = useState(getPSTHour());
@@ -260,9 +262,39 @@ function SceneContent({
         weatherCondition={effectiveWeather.weatherCondition}
         cloudCover={effectiveWeather.cloudCover}
       />
-      <Room currentView={currentView} focusTarget={focusTarget} onViewChange={onViewChange} onFocusChange={onFocusChange} hoveredNav={hoveredNav} />
+      <Room currentView={currentView} focusTarget={focusTarget} onViewChange={onViewChange} onFocusChange={onFocusChange} hoveredNav={hoveredNav} onBrowserReady={onBrowserReady} />
       <Environment preset="apartment" environmentIntensity={0.3} />
     </>
+  );
+}
+
+function LoadingOverlay({ browserReady }: { browserReady: boolean }) {
+  const { progress, active } = useProgress();
+  const [show, setShow] = useState(true);
+  const [fadeOut, setFadeOut] = useState(false);
+
+  useEffect(() => {
+    if (progress === 100 && !active && browserReady) {
+      setFadeOut(true);
+      const timer = setTimeout(() => setShow(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [progress, active, browserReady]);
+
+  if (!show) return null;
+
+  return (
+    <div className={`loading-overlay ${fadeOut ? "fade-out" : ""}`}>
+      {"RDJ".split("").map((letter, i) => (
+        <span
+          key={i}
+          className="loading-letter"
+          style={{ animationDelay: `${i * 0.15}s` }}
+        >
+          {letter}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -270,9 +302,11 @@ export function Scene() {
   const [currentView, setCurrentView] = useState<ViewType>("room");
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [browserReady, setBrowserReady] = useState(false);
 
   return (
     <div style={{ position: "relative", width: "100vw", height: "100vh" }}>
+      <LoadingOverlay browserReady={browserReady} />
       <Canvas
         camera={{ position: [0, 1.5, -4], fov: 50 }}
         style={{ width: "100%", height: "100%" }}
@@ -284,6 +318,7 @@ export function Scene() {
             focusTarget={focusTarget}
             onFocusChange={setFocusTarget}
             hoveredNav={hoveredNav}
+            onBrowserReady={() => setBrowserReady(true)}
           />
         </Suspense>
         <CameraController view={currentView} focusTarget={focusTarget} />

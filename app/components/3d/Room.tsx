@@ -20,9 +20,10 @@ interface RoomProps {
   onViewChange: (view: ViewType) => void;
   onFocusChange: (target: FocusTarget | null) => void;
   hoveredNav?: string | null;
+  onBrowserReady?: () => void;
 }
 
-export function Room({ currentView, focusTarget, onViewChange, onFocusChange, hoveredNav }: RoomProps) {
+export function Room({ currentView, focusTarget, onViewChange, onFocusChange, hoveredNav, onBrowserReady }: RoomProps) {
   const { scene } = useGLTF("/models/Room.glb");
 
   const isRoomView = currentView === "room" && focusTarget === null;
@@ -36,6 +37,7 @@ export function Room({ currentView, focusTarget, onViewChange, onFocusChange, ho
         onClick={isRoomView ? () => onViewChange("monitor") : undefined}
         showLabel={isRoomView}
         isHighlighted={hoveredNav === "monitor" && currentView !== "monitor"}
+        onReady={onBrowserReady}
       />
       <GuitarWallMount
         position={[-2.18, 2, -0.1]}
